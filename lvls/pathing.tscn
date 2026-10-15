@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://dd3p4wahncdom"]
+
+[ext_resource type="PackedScene" uid="uid://dvxsdumm0nypf" path="res://assets/extracted/PP_Meadow_Path.tscn" id="1_07bw5"]
+
+[node name="Pathing" type="Node3D" unique_id=1676892491]
+
+[node name="PP_Meadow_Path_05" parent="." unique_id=1923800425 instance=ExtResource("1_07bw5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.4022216, 0, -0.37151194)
+
+[node name="PP_Meadow_Path_06" parent="." unique_id=590489112 instance=ExtResource("1_07bw5")]
+transform = Transform3D(0.8358074, 0, -0.5490228, 0, 1, 0, 0.5490228, 0, 0.8358074, -10.867048, 0, -3.486467)
+
+[node name="PP_Meadow_Path_07" parent="." unique_id=186949548 instance=ExtResource("1_07bw5")]
+transform = Transform3D(0.8358074, 0, 0.5490228, 0, 1, 0, -0.5490228, 0, 0.8358074, -10.073709, 0, 3.8191352)

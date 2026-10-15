@@ -1,0 +1,11 @@
+Model Information:
+* title:	Tent - Slendytubbies 0
+* source:	https://sketchfab.com/3d-models/tent-slendytubbies-0-b9b5e4fcf8994da99f5b25afe67589a2
+* author:	mrhol3 (https://sketchfab.com/mrhol3)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Tent - Slendytubbies 0" (https://sketchfab.com/3d-models/tent-slendytubbies-0-b9b5e4fcf8994da99f5b25afe67589a2) by mrhol3 (https://sketchfab.com/mrhol3) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

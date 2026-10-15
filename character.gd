@@ -1,0 +1,189 @@
+extends CharacterBody3D
+## State machine owner. Each child of the "States" node is a State script.
+## Also handles WASD movement (relative to facing) and mouse turning.
+
+@export var anim_idle := "Idle"
+@export var anim_walk := "Walk"
+@export var anim_jump_start := "Jump_Start"
+@export var anim_jump := "Jump"
+@export var anim_jump_land := "Jump_Land"
+@export var anim_fall := "Jump"
+@export var anim_interact := "Interact"
+@export var initial_state := "Idle"
+@export var gravity := 20.0
+## If we fall this far below the spawn point, teleport back to it.
+@export var fall_limit := 100.0
+
+@export_group("Movement")
+@export var move_speed := 1.5
+## Can the character steer and move forward while jumping or falling?
+## If off, it keeps whatever momentum it had when it left the ground.
+@export var air_movement := true
+## Forward speed while in the air (used when air_movement is on).
+@export var air_move_speed := 1.5
+## How quickly we reach full speed / come to a stop (units per second squared).
+@export var acceleration := 6.0
+@export var deceleration := 8.0
+## Seconds to cross-fade between animations.
+@export var anim_blend := 0.2
+## Seconds after jumping before the character can jump again.
+@export var jump_cooldown := 1.0
+
+@export_group("Turning")
+## Radians per pixel of mouse movement.
+@export var mouse_sensitivity := 0.003
+## Fastest the character can turn, in degrees per second (0 = no limit).
+## Mouse movement beyond this is queued up and played out at this speed.
+@export var max_turn_speed := 120.0
+## Most turning (degrees) that can be queued up, so the character doesn't
+## keep spinning long after you stop moving the mouse.
+@export var max_queued_turn := 45.0
+
+## Set to false (e.g. by the free camera) to ignore keyboard and mouse.
+var input_enabled := true
+var current_state: State
+var states := {}
+var _spawn_position: Vector3
+var _pending_turn := 0.0  # radians still to turn
+var _jump_cooldown_left := 0.0
+@onready var anim: AnimationPlayer = find_child("AnimationPlayer", true, false)
+
+
+func _ready() -> void:
+	add_to_group("player")
+	add_child(JumpRing.new())
+	var health := Health.new()
+	health.name = "Health"
+	add_child(health)
+	add_child(HealthBar.new())
+	_spawn_position = global_position
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	for child in $States.get_children():
+		if child is State:
+			child.character = self
+			states[child.name] = child
+	_change_state(initial_state)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	# Esc is handled by the pause menu, which also frees/recaptures the mouse.
+	if event is InputEventMouseButton and event.pressed \
+			and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	elif event is InputEventMouseMotion and input_enabled \
+			and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		var limit := deg_to_rad(max_queued_turn)
+		_pending_turn = clampf(_pending_turn - event.relative.x * mouse_sensitivity, -limit, limit)
+
+
+func _physics_process(delta: float) -> void:
+	_apply_turn(delta)
+	_jump_cooldown_left = maxf(_jump_cooldown_left - delta, 0.0)
+
+	if not is_on_floor():
+		velocity.y -= gravity * delta
+
+	var next := current_state.update(delta)
+	if next != "":
+		_change_state(next)
+
+	move_and_slide()
+
+	if global_position.y < _spawn_position.y - fall_limit:
+		global_position = _spawn_position
+		velocity = Vector3.ZERO
+
+
+## Turn toward the queued mouse turning, no faster than max_turn_speed.
+func _apply_turn(delta: float) -> void:
+	if max_turn_speed <= 0.0:
+		rotate_y(_pending_turn)
+		_pending_turn = 0.0
+		return
+	var max_step := deg_to_rad(max_turn_speed) * delta
+	var step := clampf(_pending_turn, -max_step, max_step)
+	rotate_y(step)
+	_pending_turn -= step
+
+
+func _change_state(state_name: String) -> void:
+	if not states.has(state_name):
+		push_warning("No state named '%s'." % state_name)
+		return
+	if current_state:
+		current_state.exit()
+	current_state = states[state_name]
+	current_state.enter()
+
+
+func play(anim_name: String) -> void:
+	if anim == null:
+		push_warning("No AnimationPlayer found under character.")
+	elif anim.has_animation(anim_name):
+		anim.speed_scale = 1.0
+		anim.play(anim_name, anim_blend)
+	else:
+		push_warning("AnimationPlayer has no animation named '%s'." % anim_name)
+
+
+## Keyboard check that respects input_enabled.
+func is_key(key: Key) -> bool:
+	return input_enabled and Input.is_physical_key_pressed(key)
+
+
+## True when Space is held and the jump cooldown is over.
+func wants_jump() -> bool:
+	return is_key(KEY_SPACE) and _jump_cooldown_left <= 0.0
+
+
+## 0..1 fill of the jump cooldown (1 = ready).
+func jump_cooldown_progress() -> float:
+	if jump_cooldown <= 0.0:
+		return 1.0
+	return clampf(1.0 - _jump_cooldown_left / jump_cooldown, 0.0, 1.0)
+
+
+func start_jump_cooldown() -> void:
+	_jump_cooldown_left = jump_cooldown
+
+
+## Only W moves the character; the mouse turns it.
+func is_moving() -> bool:
+	return is_key(KEY_W)
+
+
+## Current horizontal speed.
+func horizontal_speed() -> float:
+	return Vector2(velocity.x, velocity.z).length()
+
+
+## Match the walk animation's pace to how fast we're actually moving, so the
+## feet don't slide while speeding up or slowing down.
+func sync_anim_speed() -> void:
+	if anim:
+		anim.speed_scale = clampf(horizontal_speed() / move_speed, 0.3, 1.0)
+
+
+## Speed up toward full speed while W is held, otherwise slow down.
+func apply_move(delta: float) -> void:
+	var in_air := not is_on_floor()
+	if in_air and not air_movement:
+		return  # no air control: keep the momentum we left the ground with
+	var speed := air_move_speed if in_air else move_speed
+	var target := Vector2.ZERO
+	var rate := deceleration
+	if is_moving():
+		# The model faces +Z, so forward is +Z.
+		var fwd := global_transform.basis.z
+		target = Vector2(fwd.x, fwd.z).normalized() * speed
+		rate = acceleration
+	var h := Vector2(velocity.x, velocity.z).move_toward(target, rate * delta)
+	velocity.x = h.x
+	velocity.z = h.y
+
+
+## Slow to a stop, ignoring input.
+func stop_move(delta: float) -> void:
+	var h := Vector2(velocity.x, velocity.z).move_toward(Vector2.ZERO, deceleration * delta)
+	velocity.x = h.x
+	velocity.z = h.y
