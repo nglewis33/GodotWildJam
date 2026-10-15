@@ -20,8 +20,8 @@ extends Node
 @export_group("Orientation")
 ## Models "face" the fire along their +Z axis; rotate if the entrance or log
 ## direction is off.
-@export var tent_yaw_offset_degrees := 0.0
-@export var log_yaw_offset_degrees := 0.0
+@export var tent_yaw_offset_degrees := 270.0
+@export var log_yaw_offset_degrees := 90.0
 
 @export var ray_height := 30.0
 @export var ray_depth := 60.0
@@ -65,7 +65,12 @@ func _place(scene: PackedScene, p: Vector2, look_at_xz: Vector2, yaw_offset_deg:
 	get_parent().add_child(n)
 	var d := look_at_xz - p
 	var yaw := atan2(d.x, d.y) + deg_to_rad(yaw_offset_deg) if d.length() > 0.01 else 0.0
-	n.global_position = Vector3(p.x, _ground_y(p, n.global_position.y) - 0.02, p.y)
+	# Sit on the lowest ground under the footprint so tall grass tufts don't lift it.
+	var r: float = (n.get("target_size") if n.get("target_size") != null else 1.0) * 0.4
+	var y := _ground_y(p, n.global_position.y)
+	for off in [Vector2(r, 0), Vector2(-r, 0), Vector2(0, r), Vector2(0, -r)]:
+		y = minf(y, _ground_y(p + off, y))
+	n.global_position = Vector3(p.x, y - 0.02, p.y)
 	n.rotation.y = yaw
 
 

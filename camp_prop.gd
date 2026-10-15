@@ -7,6 +7,8 @@ enum ColliderType { BOX, CYLINDER, CONVEX_HULL }
 
 ## Longest horizontal side of the model after rescaling (world units).
 @export var target_size := 2.0
+## Raise (+) or sink (-) the model and its collider, in world units.
+@export var height_offset := 0.0
 @export var add_collision := true
 @export var collider: ColliderType = ColliderType.CONVEX_HULL
 ## Nodes whose names contain any of these are ignored when measuring and
@@ -44,7 +46,8 @@ func _fit() -> void:
 	var c := box.get_center()
 	model.scale = Vector3.ONE * s
 	model.position = Vector3(-c.x * s, -box.position.y * s, -c.z * s)
-	fitted_box = AABB(Vector3(-box.size.x * s * 0.5, 0.0, -box.size.z * s * 0.5), box.size * s)
+	model.position.y += height_offset
+	fitted_box = AABB(Vector3(-box.size.x * s * 0.5, height_offset, -box.size.z * s * 0.5), box.size * s)
 
 
 ## Returns [merged AABB, found_any_mesh], in `model`'s local space.
