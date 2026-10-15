@@ -25,11 +25,12 @@ extends Node
 @export var log_yaw_offset_degrees := 90.0
 
 @export_group("NPC")
-## Where the NPC sits, in the log's local space, measured from the middle of
-## the log's top surface (x = along the log's width, y = up, z = along the log).
-## Adjust y until the NPC's behind meets the log; scale the log with target_size
-## on Log.tscn if the log itself needs to be taller or shorter.
-@export var npc_seat_offset := Vector3(0.0, -0.45, 0.0)
+## The NPC's feet stay on the ground (so it can stand up and walk away later);
+## the sitting animation lowers the hips. This is the NPC's position relative to
+## the middle of the log, measured on the ground, in the log's local axes
+## (x = across the log, z = along it), plus a vertical nudge (y). To make the
+## behind meet the log, change the log's height with target_size on Log.tscn.
+@export var npc_seat_offset := Vector3.ZERO
 @export var npc_yaw_offset_degrees := 0.0
 
 @export var ray_height := 30.0
@@ -89,10 +90,9 @@ func _place(scene: PackedScene, p: Vector2, look_at_xz: Vector2, yaw_offset_deg:
 func _seat_npc(log_node: Node3D, fire: Vector2) -> void:
 	if npc_scene == null or log_node == null:
 		return
-	var top := 0.0
-	if "fitted_box" in log_node:
-		top = log_node.fitted_box.end.y
-	var seat := log_node.to_global(Vector3(npc_seat_offset.x, top + npc_seat_offset.y, npc_seat_offset.z))
+	var spot := log_node.to_global(Vector3(npc_seat_offset.x, 0.0, npc_seat_offset.z))
+	var spot2 := Vector2(spot.x, spot.z)
+	var seat := Vector3(spot.x, _ground_y(spot2, log_node.global_position.y) + npc_seat_offset.y, spot.z)
 	var npc := npc_scene.instantiate() as Node3D
 	get_parent().add_child(npc)
 	npc.global_position = seat
