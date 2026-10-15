@@ -24,6 +24,12 @@ extends Node
 @export var tent_yaw_offset_degrees := 270.0
 @export var log_yaw_offset_degrees := 90.0
 
+@export_group("Log")
+## Easy tuning from the level (so you don't have to edit Log.tscn). 0 = use the
+## values saved in Log.tscn.
+@export var log_size_override := 0.0 ## Log length in world units (scales its thickness too).
+@export var log_height_offset := 0.0 ## Raise (+) or sink (-) the log.
+
 @export_group("NPC")
 ## The NPC's feet stay on the ground (so it can stand up and walk away later);
 ## the sitting animation lowers the hips. This is the NPC's position relative to
@@ -54,7 +60,12 @@ func _ready() -> void:
 	_place(campfire_scene, c, c + out_dir, 0.0)
 	_place(tent_scene, c + tent_side * tent_distance, c, tent_yaw_offset_degrees)
 	var log_pos := c - tent_side * log_distance
-	var log_node := _place(log_scene, log_pos, c, log_yaw_offset_degrees)
+	var log_props := {}
+	if log_size_override > 0.0:
+		log_props["target_size"] = log_size_override
+	if log_height_offset != 0.0:
+		log_props["height_offset"] = log_height_offset
+	var log_node := _place(log_scene, log_pos, c, log_yaw_offset_degrees, log_props)
 	_seat_npc(log_node, c)
 
 	var player := get_tree().get_first_node_in_group("player") as Node3D
@@ -70,10 +81,12 @@ func _ready() -> void:
 		player.set("_spawn_position", pos) # respawn point after falling
 
 
-func _place(scene: PackedScene, p: Vector2, look_at_xz: Vector2, yaw_offset_deg: float) -> Node3D:
+func _place(scene: PackedScene, p: Vector2, look_at_xz: Vector2, yaw_offset_deg: float, props: Dictionary = {}) -> Node3D:
 	if scene == null:
 		return null
 	var n := scene.instantiate() as Node3D
+	for k in props:
+		n.set(k, props[k]) # before add_child so the prop's _ready sees them
 	get_parent().add_child(n)
 	var d := look_at_xz - p
 	var yaw := atan2(d.x, d.y) + deg_to_rad(yaw_offset_deg) if d.length() > 0.01 else 0.0
