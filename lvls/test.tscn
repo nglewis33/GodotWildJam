@@ -39,7 +39,7 @@
 [ext_resource type="Script" uid="uid://dx0g3uxp05vue" path="res://camp_site.gd" id="71_camp"]
 [ext_resource type="PackedScene" path="res://Campfire.tscn" id="72_fire"]
 [ext_resource type="PackedScene" path="res://Tent.tscn" id="73_tent"]
-[ext_resource type="PackedScene" path="res://Log.tscn" id="74_log"]
+[ext_resource type="PackedScene" uid="uid://dt0cec400rsmw" path="res://Log.tscn" id="74_log"]
 [ext_resource type="PackedScene" path="res://NPC.tscn" id="75_npc"]
 
 [sub_resource type="Resource" id="Resource_ff7wo"]
@@ -217,3 +217,5 @@ campfire_scene = ExtResource("72_fire")
 tent_scene = ExtResource("73_tent")
 log_scene = ExtResource("74_log")
 npc_scene = ExtResource("75_npc")
+log_size_override = 2.0
+npc_seat_offset = Vector3(-0.3, 0, 0.2)
