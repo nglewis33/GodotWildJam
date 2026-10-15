@@ -1,0 +1,49 @@
+class_name SittingNpc
+extends Node3D
+## An NPC that sits and idles, and now and then "talks". Uses the same
+## character model (and animation library) as the player.
+
+@export var idle_animation := "Sitting_Idle"
+@export var talk_animation := "Sitting_Talking"
+@export var blend := 0.3
+@export var auto_talk := true
+@export var idle_time_min := 4.0
+@export var idle_time_max := 10.0
+@export var talk_time_min := 3.0
+@export var talk_time_max := 8.0
+
+var _ap: AnimationPlayer
+var _talking := false
+var _timer := 0.0
+
+
+func _ready() -> void:
+	_ap = find_child("AnimationPlayer", true, false) as AnimationPlayer
+	if _ap == null:
+		push_warning("SittingNpc: no AnimationPlayer found under the Model.")
+		return
+	for clip in [idle_animation, talk_animation]:
+		if _ap.has_animation(clip):
+			_ap.get_animation(clip).loop_mode = Animation.LOOP_LINEAR
+		else:
+			push_warning("SittingNpc: animation '%s' not found." % clip)
+	set_talking(false)
+
+
+## Switches between the idle and talking animations (also usable from dialogue).
+func set_talking(value: bool) -> void:
+	_talking = value
+	if _ap == null:
+		return
+	var clip := talk_animation if value else idle_animation
+	if _ap.has_animation(clip):
+		_ap.play(clip, blend)
+	_timer = randf_range(talk_time_min, talk_time_max) if value else randf_range(idle_time_min, idle_time_max)
+
+
+func _process(delta: float) -> void:
+	if not auto_talk or _ap == null:
+		return
+	_timer -= delta
+	if _timer <= 0.0:
+		set_talking(not _talking)

@@ -8,6 +8,7 @@ extends Node
 @export var campfire_scene: PackedScene
 @export var tent_scene: PackedScene
 @export var log_scene: PackedScene
+@export var npc_scene: PackedScene
 
 @export_group("Layout")
 ## Distance from the fire, in world units.
@@ -22,6 +23,14 @@ extends Node
 ## direction is off.
 @export var tent_yaw_offset_degrees := 270.0
 @export var log_yaw_offset_degrees := 90.0
+
+@export_group("NPC")
+## Where the NPC sits, in the log's local space, measured from the middle of
+## the log's top surface (x = along the log's width, y = up, z = along the log).
+## Adjust y until the NPC's behind meets the log; scale the log with target_size
+## on Log.tscn if the log itself needs to be taller or shorter.
+@export var npc_seat_offset := Vector3(0.0, -0.45, 0.0)
+@export var npc_yaw_offset_degrees := 0.0
 
 @export var ray_height := 30.0
 @export var ray_depth := 60.0
@@ -43,7 +52,9 @@ func _ready() -> void:
 
 	_place(campfire_scene, c, c + out_dir, 0.0)
 	_place(tent_scene, c + tent_side * tent_distance, c, tent_yaw_offset_degrees)
-	_place(log_scene, c - tent_side * log_distance, c, log_yaw_offset_degrees)
+	var log_pos := c - tent_side * log_distance
+	var log_node := _place(log_scene, log_pos, c, log_yaw_offset_degrees)
+	_seat_npc(log_node, c)
 
 	var player := get_tree().get_first_node_in_group("player") as Node3D
 	if player:
@@ -58,9 +69,9 @@ func _ready() -> void:
 		player.set("_spawn_position", pos) # respawn point after falling
 
 
-func _place(scene: PackedScene, p: Vector2, look_at_xz: Vector2, yaw_offset_deg: float) -> void:
+func _place(scene: PackedScene, p: Vector2, look_at_xz: Vector2, yaw_offset_deg: float) -> Node3D:
 	if scene == null:
-		return
+		return null
 	var n := scene.instantiate() as Node3D
 	get_parent().add_child(n)
 	var d := look_at_xz - p
@@ -72,6 +83,21 @@ func _place(scene: PackedScene, p: Vector2, look_at_xz: Vector2, yaw_offset_deg:
 		y = minf(y, _ground_y(p + off, y))
 	n.global_position = Vector3(p.x, y - 0.02, p.y)
 	n.rotation.y = yaw
+	return n
+
+
+func _seat_npc(log_node: Node3D, fire: Vector2) -> void:
+	if npc_scene == null or log_node == null:
+		return
+	var top := 0.0
+	if "fitted_box" in log_node:
+		top = log_node.fitted_box.end.y
+	var seat := log_node.to_global(Vector3(npc_seat_offset.x, top + npc_seat_offset.y, npc_seat_offset.z))
+	var npc := npc_scene.instantiate() as Node3D
+	get_parent().add_child(npc)
+	npc.global_position = seat
+	var d := fire - Vector2(seat.x, seat.z)
+	npc.rotation.y = atan2(d.x, d.y) + deg_to_rad(npc_yaw_offset_degrees)
 
 
 func _ground_y(p: Vector2, fallback: float) -> float:

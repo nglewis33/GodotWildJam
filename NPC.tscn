@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://npc.gd" id="1_npc"]
+[ext_resource type="PackedScene" uid="uid://cfhunnpvjqpi3" path="res://Character.tscn" id="2_model"]
+
+[node name="NPC" type="Node3D"]
+script = ExtResource("1_npc")
+
+[node name="Model" parent="." instance=ExtResource("2_model")]
