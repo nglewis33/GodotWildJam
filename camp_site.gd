@@ -92,7 +92,12 @@ func _seat_npc(log_node: Node3D, fire: Vector2) -> void:
 		return
 	var spot := log_node.to_global(Vector3(npc_seat_offset.x, 0.0, npc_seat_offset.z))
 	var spot2 := Vector2(spot.x, spot.z)
-	var seat := Vector3(spot.x, _ground_y(spot2, log_node.global_position.y) + npc_seat_offset.y, spot.z)
+	# Ignore the log's own collider so the ray finds the ground beneath it.
+	var skip: Array[RID] = []
+	var body := log_node.get_node_or_null("Collision") as CollisionObject3D
+	if body:
+		skip.append(body.get_rid())
+	var seat := Vector3(spot.x, _ground_y(spot2, log_node.global_position.y, skip) + npc_seat_offset.y, spot.z)
 	var npc := npc_scene.instantiate() as Node3D
 	get_parent().add_child(npc)
 	npc.global_position = seat
@@ -100,10 +105,11 @@ func _seat_npc(log_node: Node3D, fire: Vector2) -> void:
 	npc.rotation.y = atan2(d.x, d.y) + deg_to_rad(npc_yaw_offset_degrees)
 
 
-func _ground_y(p: Vector2, fallback: float) -> float:
+func _ground_y(p: Vector2, fallback: float, exclude: Array[RID] = []) -> float:
 	var ref := path_generator.global_position.y
 	var from := Vector3(p.x, ref + ray_height, p.y)
 	var to := Vector3(p.x, ref - ray_depth, p.y)
 	var q := PhysicsRayQueryParameters3D.create(from, to)
+	q.exclude = exclude
 	var hit := get_viewport().world_3d.direct_space_state.intersect_ray(q)
 	return hit.position.y if hit else fallback
