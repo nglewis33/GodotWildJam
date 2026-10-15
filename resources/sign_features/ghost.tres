@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="GhostFeature" format=3 uid="uid://d3y5cac0psnlv"]
+
+[ext_resource type="Script" uid="uid://bof3wkedm0kxv" path="res://scripts/signs/ghost_feature.gd" id="1_ghost"]
+
+[resource]
+script = ExtResource("1_ghost")
+text = "You feel lighter, as if the forest can barely see you. The world seems to look straight through you now. Perhaps that is a blessing. Perhaps it is not. Walk carefully."

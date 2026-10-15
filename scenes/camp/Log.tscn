@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://dt0cec400rsmw"]
+
+[ext_resource type="Script" uid="uid://ddjvc6gtgn3tf" path="res://scripts/camp/camp_prop.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://68hg02mnvrw7" path="res://assets/models/camp/Log/scene.gltf" id="2_model"]
+
+[node name="Log" type="Node3D" unique_id=1026716981]
+script = ExtResource("1_script")
+target_size = 3.0
+
+[node name="Model" parent="." unique_id=1738522882 instance=ExtResource("2_model")]

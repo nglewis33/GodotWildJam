@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://bgs1sgv721ooy"]
+
+[ext_resource type="PackedScene" uid="uid://s3xiaukaqwm1" path="res://assets/models/signs/post1.glb" id="1_f2luf"]
+[ext_resource type="Script" uid="uid://cxh7fla4c5br0" path="res://scripts/signs/sign_post.gd" id="2_signpost"]
+
+[node name="post12" unique_id=1599346039 instance=ExtResource("1_f2luf")]
+
+[node name="SignPost" type="Node" parent="." index="1" unique_id=909834721]
+script = ExtResource("2_signpost")
+read_once = false

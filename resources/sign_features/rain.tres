@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="RainFeature" format=3]
+
+[ext_resource type="Script" path="res://scripts/signs/rain_feature.gd" id="1_rf"]
+[ext_resource type="PackedScene" path="res://scenes/world/Rain.tscn" id="2_rain"]
+
+[resource]
+script = ExtResource("1_rf")
+text = "A soft rain begins to fall, whispering through the leaves. It is gentle, but it will not stop. The forest drinks it in, and the night grows a little quieter."
+rain_scene = ExtResource("2_rain")

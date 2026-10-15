@@ -1,0 +1,221 @@
+[gd_scene format=3 uid="uid://1wvudwheq5tq"]
+
+[ext_resource type="PackedScene" uid="uid://00nacha8ji6g" path="res://assets/forest/extracted/PP_Meadow.tscn" id="1_nx1gn"]
+[ext_resource type="PackedScene" uid="uid://fq8tny6kq1j6" path="res://scenes/player/Player.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://scenes/player/Camera.tscn" id="3_cam"]
+[ext_resource type="Script" uid="uid://cwohh43x4he0k" path="res://scripts/world/ground_grid.gd" id="4_ground"]
+[ext_resource type="Script" uid="uid://cep0s6eo5vnwf" path="res://scripts/world/scatter.gd" id="5_scatter"]
+[ext_resource type="Script" uid="uid://br1vmthe2o2yj" path="res://scripts/world/scatter_entry.gd" id="6_0w447"]
+[ext_resource type="PackedScene" uid="uid://cqtdve2jriri5" path="res://assets/forest/extracted/PP_Birch_Tree.tscn" id="7_s3ppv"]
+[ext_resource type="PackedScene" uid="uid://cvi1jcht0sbef" path="res://assets/forest/extracted/PP_Tree.tscn" id="8_riht1"]
+[ext_resource type="PackedScene" uid="uid://ddrksl335qfls" path="res://assets/forest/extracted/PP_Rock_Pile_Forest_Moss.tscn" id="9_n60ik"]
+[ext_resource type="PackedScene" uid="uid://coar833gplsnn" path="res://assets/forest/extracted/PP_Rock_Pile_Forest_Moss_05.tscn" id="10_0yopb"]
+[ext_resource type="PackedScene" uid="uid://cb1amk5ajyfvq" path="res://assets/forest/extracted/PP_Rock_Pile_Forest_Moss_10.tscn" id="11_45n8o"]
+[ext_resource type="PackedScene" uid="uid://dbkc0q7x7q4x6" path="res://assets/forest/extracted/PP_Rock_Moss_Grown_09.tscn" id="12_nlrjj"]
+[ext_resource type="PackedScene" uid="uid://di6xnmiqmgpjj" path="res://assets/forest/extracted/PP_Rock_Moss_Grown_11.tscn" id="13_4dgoe"]
+[ext_resource type="PackedScene" uid="uid://dvbrk7x2b4ng8" path="res://assets/forest/extracted/PP_Daffodil.tscn" id="14_nlrjj"]
+[ext_resource type="PackedScene" uid="uid://ca8f6gh4hbrpj" path="res://assets/forest/extracted/PP_Grass.tscn" id="15_4dgoe"]
+[ext_resource type="PackedScene" uid="uid://l8ywxn2c886t" path="res://assets/forest/extracted/PP_Hyacinth.tscn" id="16_alm8k"]
+[ext_resource type="PackedScene" uid="uid://dgnyts5x51t6w" path="res://assets/forest/extracted/PP_Mushroom_Fantasy_Orange.tscn" id="17_llfq8"]
+[ext_resource type="PackedScene" uid="uid://csskn2u5mc70d" path="res://assets/forest/extracted/PP_Mushroom_Fantasy_Purple.tscn" id="18_61o5v"]
+[ext_resource type="PackedScene" uid="uid://upj13suqhu7n" path="res://assets/forest/extracted/PP_Sunflower.tscn" id="19_8g8p0"]
+[ext_resource type="PackedScene" path="res://scenes/world/Atmosphere.tscn" id="30_atm"]
+[ext_resource type="PackedScene" path="res://scenes/world/Rain.tscn" id="35_7arqs"]
+[ext_resource type="Script" uid="uid://mogk6u5dlkmb" path="res://scripts/audio/ambience.gd" id="40_amb"]
+[ext_resource type="Script" uid="uid://c4qtlkgdjuqmp" path="res://scripts/audio/ambience_entry.gd" id="41_ambentry"]
+[ext_resource type="AudioStream" uid="uid://cqjk0jeaj27o2" path="res://assets/audio/ambience/dragon-studio-cicada-buzzing-331499.mp3" id="42_cicada"]
+[ext_resource type="AudioStream" uid="uid://b80fpan45mmt0" path="res://assets/audio/ambience/dragon-studio-frog-croaking-sound-effect-322956.mp3" id="42_frog"]
+[ext_resource type="AudioStream" uid="uid://c11ri8fvveem1" path="res://assets/audio/ambience/freesound_community-tawny-owl-in-molkom-sweden-99897.mp3" id="42_owl"]
+[ext_resource type="AudioStream" uid="uid://bo5e6bj6i2mog" path="res://assets/audio/ambience/dragon-studio-harsh-wind-515272.mp3" id="42_wind"]
+[ext_resource type="AudioStream" uid="uid://3usjk7x42plw" path="res://assets/audio/ambience/dragon-studio-howling-wolves-515977.mp3" id="42_wolves"]
+[ext_resource type="AudioStream" uid="uid://c21j1ltm1r2tp" path="res://assets/audio/music/syouki_takahashi-midnight-forest-184304.mp3" id="50_music"]
+[ext_resource type="Script" uid="uid://c4wamgqw84fwd" path="res://scripts/audio/music.gd" id="51_musicscript"]
+[ext_resource type="PackedScene" path="res://scenes/ui/PauseMenu.tscn" id="52_pause"]
+[ext_resource type="Script" uid="uid://dknynho8iifvt" path="res://scripts/signs/sign_spawner.gd" id="60_signspawner"]
+[ext_resource type="PackedScene" uid="uid://bgs1sgv721ooy" path="res://scenes/signs/post_sign.tscn" id="61_sign"]
+[ext_resource type="Script" uid="uid://bcrtj354fhy6q" path="res://scripts/signs/sign_feature.gd" id="62_feat"]
+[ext_resource type="Resource" uid="uid://d3y5cac0psnlv" path="res://resources/sign_features/ghost.tres" id="63_ghost"]
+[ext_resource type="Script" uid="uid://dfsdmammnxjt7" path="res://scripts/world/path_generator.gd" id="70_pathgen"]
+[ext_resource type="Script" uid="uid://dx0g3uxp05vue" path="res://scripts/camp/camp_site.gd" id="71_camp"]
+[ext_resource type="PackedScene" path="res://scenes/camp/Campfire.tscn" id="72_fire"]
+[ext_resource type="PackedScene" path="res://scenes/camp/Tent.tscn" id="73_tent"]
+[ext_resource type="PackedScene" uid="uid://dt0cec400rsmw" path="res://scenes/camp/Log.tscn" id="74_log"]
+[ext_resource type="PackedScene" path="res://scenes/npc/NPC.tscn" id="75_npc"]
+
+[sub_resource type="Resource" id="Resource_ff7wo"]
+script = ExtResource("6_0w447")
+scene = ExtResource("7_s3ppv")
+weight = 23.2
+
+[sub_resource type="Resource" id="Resource_nrdrc"]
+script = ExtResource("6_0w447")
+scene = ExtResource("8_riht1")
+weight = 60.6
+
+[sub_resource type="Resource" id="Resource_w0coa"]
+script = ExtResource("6_0w447")
+scene = ExtResource("9_n60ik")
+weight = 3.0
+collider_shape = 3
+
+[sub_resource type="Resource" id="Resource_6m38a"]
+script = ExtResource("6_0w447")
+scene = ExtResource("10_0yopb")
+collider_shape = 3
+
+[sub_resource type="Resource" id="Resource_6rk7q"]
+script = ExtResource("6_0w447")
+scene = ExtResource("11_45n8o")
+collider_shape = 3
+
+[sub_resource type="Resource" id="Resource_tbp23"]
+script = ExtResource("6_0w447")
+scene = ExtResource("12_nlrjj")
+weight = 5.0
+collider_shape = 3
+
+[sub_resource type="Resource" id="Resource_uw1rg"]
+script = ExtResource("6_0w447")
+scene = ExtResource("13_4dgoe")
+weight = 10.0
+collider_shape = 3
+
+[sub_resource type="Resource" id="Resource_tmnu4"]
+script = ExtResource("6_0w447")
+scene = ExtResource("14_nlrjj")
+weight = 5.0
+
+[sub_resource type="Resource" id="Resource_alm8k"]
+script = ExtResource("6_0w447")
+scene = ExtResource("15_4dgoe")
+weight = 100.0
+
+[sub_resource type="Resource" id="Resource_llfq8"]
+script = ExtResource("6_0w447")
+scene = ExtResource("16_alm8k")
+weight = 7.0
+
+[sub_resource type="Resource" id="Resource_61o5v"]
+script = ExtResource("6_0w447")
+scene = ExtResource("17_llfq8")
+
+[sub_resource type="Resource" id="Resource_8g8p0"]
+script = ExtResource("6_0w447")
+scene = ExtResource("18_61o5v")
+weight = 2.0
+
+[sub_resource type="Resource" id="Resource_goely"]
+script = ExtResource("6_0w447")
+scene = ExtResource("19_8g8p0")
+weight = 10.0
+
+[sub_resource type="Resource" id="AmbienceEntry_cicada"]
+script = ExtResource("41_ambentry")
+stream = ExtResource("42_cicada")
+volume_db = -22.0
+
+[sub_resource type="Resource" id="AmbienceEntry_frog"]
+script = ExtResource("41_ambentry")
+stream = ExtResource("42_frog")
+volume_db = -26.0
+
+[sub_resource type="Resource" id="AmbienceEntry_wind"]
+script = ExtResource("41_ambentry")
+stream = ExtResource("42_wind")
+volume_db = -22.0
+
+[sub_resource type="Resource" id="AmbienceEntry_wolves"]
+script = ExtResource("41_ambentry")
+stream = ExtResource("42_wolves")
+volume_db = -30.0
+
+[sub_resource type="Resource" id="AmbienceEntry_owl"]
+script = ExtResource("41_ambentry")
+stream = ExtResource("42_owl")
+volume_db = -11.0
+
+[node name="Test" type="Node3D" unique_id=171616834]
+
+[node name="Ground" type="Node3D" parent="." unique_id=56242669]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.326929, 0.375889, 0.58842)
+script = ExtResource("4_ground")
+tile_scenes = Array[PackedScene]([ExtResource("1_nx1gn")])
+grid_size = Vector2i(36, 36)
+tile_overlap = 0.08
+
+[node name="Player" parent="." unique_id=1297110832 instance=ExtResource("2_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.322942, 2.80186, 0.591608)
+air_move_speed = 4.5
+jump_cooldown = 3.0
+
+[node name="FollowCamera" parent="." unique_id=1124731776 node_paths=PackedStringArray("target") instance=ExtResource("3_cam")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.322942, 0.48, 0.541608)
+target = NodePath("../Player")
+free_speed = 5.0
+
+[node name="Scatter" type="Node3D" parent="." unique_id=826314366 node_paths=PackedStringArray("ground_grid", "path_generator")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.322942, 2.80186, 0.591608)
+script = ExtResource("5_scatter")
+hard_objects = Array[ExtResource("6_0w447")]([SubResource("Resource_ff7wo"), SubResource("Resource_nrdrc"), SubResource("Resource_w0coa"), SubResource("Resource_6m38a"), SubResource("Resource_6rk7q"), SubResource("Resource_tbp23"), SubResource("Resource_uw1rg")])
+soft_objects = Array[ExtResource("6_0w447")]([SubResource("Resource_tmnu4"), SubResource("Resource_alm8k"), SubResource("Resource_llfq8"), SubResource("Resource_61o5v"), SubResource("Resource_8g8p0"), SubResource("Resource_goely")])
+ground_grid = NodePath("../Ground")
+area_size = Vector2(22, 22)
+clearing_radius = 10.0
+path_generator = NodePath("../PathGenerator")
+hard_coverage = 0.5
+soft_density = 1.0
+ray_height = 5.0
+ray_depth = 10.0
+
+[node name="Atmosphere" parent="." unique_id=363104454 node_paths=PackedStringArray("ground_grid") instance=ExtResource("30_atm")]
+ground_grid = NodePath("../Ground")
+ground_fog_base_offset = 1.0
+
+[node name="Ambience" type="Node" parent="." unique_id=2084761881]
+script = ExtResource("40_amb")
+sounds = Array[ExtResource("41_ambentry")]([SubResource("AmbienceEntry_cicada"), SubResource("AmbienceEntry_frog"), SubResource("AmbienceEntry_wind"), SubResource("AmbienceEntry_wolves"), SubResource("AmbienceEntry_owl")])
+check_interval = 13.0
+play_chance = 0.55
+
+[node name="Music" type="AudioStreamPlayer" parent="." unique_id=1707735282]
+process_mode = 3
+stream = ExtResource("50_music")
+volume_db = -35.0
+pitch_scale = 0.5
+script = ExtResource("51_musicscript")
+gap_mean = 45.0
+gap_std_dev = 12.0
+start_delay = 2.0
+
+[node name="PauseMenu" parent="." unique_id=2028114063 instance=ExtResource("52_pause")]
+
+[node name="SignSpawner" type="Node" parent="." unique_id=785494615]
+script = ExtResource("60_signspawner")
+sign_scene = ExtResource("61_sign")
+features = Array[ExtResource("62_feat")]([ExtResource("63_ghost")])
+
+[node name="Rain" parent="." unique_id=1180229721 instance=ExtResource("35_7arqs")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -129.76149, 410.85876, 196.41121)
+amount = 150
+drop_length = 0.3
+drop_alpha = 0.12
+
+[node name="PathGenerator" type="Node3D" parent="." unique_id=2047529965 node_paths=PackedStringArray("ground_grid")]
+script = ExtResource("70_pathgen")
+ground_grid = NodePath("../Ground")
+end_distance = 160.0
+curviness = 0.67
+fork_count = 6
+start_radius = 8.0
+end_radius = 8.0
+path_color = Color(0.48970687, 0.33671996, 0.20198193, 1)
+
+[node name="CampSite" type="Node" parent="." unique_id=1648144078 node_paths=PackedStringArray("path_generator")]
+script = ExtResource("71_camp")
+path_generator = NodePath("../PathGenerator")
+campfire_scene = ExtResource("72_fire")
+tent_scene = ExtResource("73_tent")
+log_scene = ExtResource("74_log")
+npc_scene = ExtResource("75_npc")
+log_size_override = 2.0
+npc_seat_offset = Vector3(-0.3, 0, 0.2)
