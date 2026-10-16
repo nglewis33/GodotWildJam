@@ -401,7 +401,7 @@ func _collect_parts(node: Node, xf: Transform3D, out: Array) -> void:
 			var ov := mi.get_surface_override_material(s)
 			if ov:
 				if mesh == mi.mesh:
-					mesh = mesh.duplicate()
+					mesh = mesh.duplicate() as Mesh
 				mesh.surface_set_material(s, ov)
 		out.append({"mesh": mesh, "xf": xf, "material": mi.material_override, "shadow": mi.cast_shadow})
 	for child in node.get_children():
