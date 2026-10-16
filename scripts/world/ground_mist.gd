@@ -4,6 +4,10 @@ extends Node3D
 ## see-through planes of drifting noise that follow the player at knee height.
 ## The noise is anchored to the world, so the mist doesn't move with the player.
 
+## Off: the mist stays at the height where the camp starts. On: it follows the ground under you.
+@export var follow_ground := false
+## Seconds the mist keeps adjusting after the game starts (so the camp can place the player) before it locks.
+@export var settle_time := 1.5
 @export var color := Color(0.65, 0.72, 0.85)
 @export_range(0.0, 1.0, 0.01) var opacity := 0.18
 @export_range(1, 6) var layers := 3
@@ -92,7 +96,10 @@ func _process(delta: float) -> void:
 	_follow(delta)
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
+	_age += delta
+	if not follow_ground and _age > settle_time:
+		return # level is locked at the height where the camp starts
 	# Height of the bare ground (not rocks/logs) under the player.
 	var player := get_tree().get_first_node_in_group("player") as Node3D
 	if player == null:
@@ -108,13 +115,16 @@ func _physics_process(_delta: float) -> void:
 
 
 var _target_y := 0.0
+var _age := 0.0
 
 
 func _follow(delta := 0.0) -> void:
 	var player := get_tree().get_first_node_in_group("player") as Node3D if is_inside_tree() else null
 	if player == null:
 		return
-	if not _has_ground_y:
+	if not follow_ground and _age > settle_time and _has_ground_y:
+		pass # locked
+	elif not _has_ground_y:
 		_ground_y = player.global_position.y
 	else:
 		_ground_y = lerpf(_ground_y, _target_y, 1.0 - exp(-6.0 * delta))
