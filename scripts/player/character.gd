@@ -43,6 +43,8 @@ extends CharacterBody3D
 @export var stamina_regen := 30.0
 ## Gain per second after running out; no running again until the bar is full.
 @export var stamina_exhausted_regen := 20.0
+## Each jump costs this much; you can't jump with less than this left.
+@export var jump_stamina_cost := 30.0
 
 @export_group("Audio")
 ## Landing plays a footstep at this volume multiplier.
@@ -156,9 +158,9 @@ func is_key(key: Key) -> bool:
 	return input_enabled and Input.is_physical_key_pressed(key)
 
 
-## True when Space is held and the jump cooldown is over.
+## True when Space is held, the jump cooldown is over and there's enough stamina.
 func wants_jump() -> bool:
-	return is_key(KEY_SPACE) and _jump_cooldown_left <= 0.0
+	return is_key(KEY_SPACE) and _jump_cooldown_left <= 0.0 and stamina >= jump_stamina_cost
 
 
 ## 0..1 fill of the jump cooldown (1 = ready).
@@ -170,6 +172,9 @@ func jump_cooldown_progress() -> float:
 
 func start_jump_cooldown() -> void:
 	_jump_cooldown_left = jump_cooldown
+	stamina = maxf(stamina - jump_stamina_cost, 0.0)
+	if stamina <= 0.0:
+		exhausted = true # fully drained: refill the whole bar before running again
 
 
 func _update_stamina(delta: float) -> void:
