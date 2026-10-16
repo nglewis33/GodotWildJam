@@ -26,6 +26,7 @@ var _spacing := Vector2.ZERO  # distance between neighboring tile origins
 var _tile_center := Vector2.ZERO  # tile bounding-box center relative to its origin
 var _origin_offset := Vector2.ZERO  # where tile (0, 0) sits relative to this node
 var _tiles: Array[Node] = []
+var _shape_cache := {}  # Mesh -> shared collision shape
 
 
 func _ready() -> void:
@@ -73,6 +74,7 @@ func generate() -> void:
 
 
 func clear() -> void:
+	_shape_cache.clear()
 	for t in _tiles:
 		if is_instance_valid(t):
 			remove_child(t)
@@ -128,9 +130,20 @@ func _collect_aabb(node: Node, xf: Transform3D, box: AABB, found: bool) -> Array
 	return [box, found]
 
 
+## Every tile of the same kind shares one collision shape (building a separate
+## one for each of the ~1300 tiles used a huge amount of time and memory).
 func _add_collision(node: Node) -> void:
 	var mi := node as MeshInstance3D
 	if mi and mi.mesh:
-		mi.create_trimesh_collision()
+		var shape: Shape3D = _shape_cache.get(mi.mesh)
+		if shape == null:
+			shape = mi.mesh.create_trimesh_shape()
+			_shape_cache[mi.mesh] = shape
+		if shape:
+			var body := StaticBody3D.new()
+			var col := CollisionShape3D.new()
+			col.shape = shape
+			body.add_child(col)
+			mi.add_child(body)
 	for child in node.get_children():
 		_add_collision(child)
