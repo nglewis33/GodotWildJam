@@ -1,7 +1,9 @@
 extends Node3D
 ## Procedurally scatters scenes over a rectangular area, on top of whatever
 ## ground has collision. Hard objects (trees) get a collider; soft objects
-## (grass, flowers) have all collision removed. Nothing overlaps.
+## (grass, flowers) have none. Nothing overlaps.
+## For speed, everything is drawn with MultiMeshes (one per mesh, per map chunk),
+## hidden beyond view_distance, and tree colliders only exist near the player.
 ## The area is centered on this node, or on the GroundGrid if one is assigned
 ## (don't rotate or scale the node).
 ## All sizes are in world units, so they must match your assets' scale.
@@ -44,6 +46,14 @@ extends Node3D
 @export var max_attempts := 20
 @export var generate_on_ready := true
 
+@export_group("Performance")
+## Objects farther than this from the camera aren't drawn (roughly; it works per chunk).
+@export var view_distance := 150.0
+## Objects are grouped into square chunks of this size, each drawn as one batch.
+@export var chunk_size := 80.0
+## Tree colliders only exist within this distance of the player.
+@export var collider_distance := 40.0
+
 var _rng := RandomNumberGenerator.new()
 var _grid := {}  # Vector2i -> Array of [Vector2 center, float radius]
 var _cell := 1.0
@@ -51,6 +61,12 @@ var _spawned: Array[Node] = []
 var _area := Vector2.ZERO
 var _area_center := Vector2.ZERO
 var _info := {}  # ScatterEntry -> {"radius": float, "height": float}
+var _parts := {}  # ScatterEntry -> Array of {"mesh", "xf", "material", "shadow"}
+var _hard_items: Array = []  # [{"pos": Vector2, "xform": Transform3D, "entry": ScatterEntry}]
+var _hard_cells := {}  # Vector2i -> PackedInt32Array of indices into _hard_items
+var _active := {}  # index into _hard_items -> collider holder Node3D
+var _stream_timer := 0.0
+const COLLIDER_CELL := 16.0
 
 
 func _ready() -> void:
@@ -99,6 +115,14 @@ func clear() -> void:
 			remove_child(n)
 			n.free()
 	_spawned.clear()
+	for i in _active:
+		if is_instance_valid(_active[i]):
+			remove_child(_active[i])
+			_active[i].free()
+	_active.clear()
+	_hard_items.clear()
+	_hard_cells.clear()
+	_parts.clear()
 	_grid.clear()
 
 
@@ -307,37 +331,140 @@ func _ground(space: PhysicsDirectSpaceState3D, p: Vector2) -> Dictionary:
 # --- Spawning --------------------------------------------------------------
 
 func _spawn(plan: Array, hard: bool) -> void:
+	# Group the placements: entry -> chunk -> transforms.
+	var groups := {}
 	for d in plan:
 		var e: ScatterEntry = d.entry
-		var inst := e.scene.instantiate() as Node3D
-		if inst == null:
-			push_warning("Scatter scene '%s' root is not a Node3D." % e.scene.resource_path)
-			continue
-		add_child(inst)
-		inst.global_transform = d.xform
-		_spawned.append(inst)
+		var xf: Transform3D = d.xform
+		var cell := Vector2i(floori(xf.origin.x / chunk_size), floori(xf.origin.z / chunk_size))
+		if not groups.has(e):
+			groups[e] = {}
+		if not groups[e].has(cell):
+			groups[e][cell] = []
+		groups[e][cell].append(xf)
 		if hard:
-			_add_collider(inst, e)
-		else:
-			_strip_collision(inst)
+			_hard_items.append({"pos": Vector2(xf.origin.x, xf.origin.z), "xform": xf, "entry": e})
+
+	var vis_end := view_distance + chunk_size * 0.8 # chunks are measured from their middle
+	for e in groups:
+		var parts := _get_parts(e)
+		for cell in groups[e]:
+			var xforms: Array = groups[e][cell]
+			for part in parts:
+				var mm := MultiMesh.new()
+				mm.transform_format = MultiMesh.TRANSFORM_3D
+				mm.mesh = part.mesh
+				mm.instance_count = xforms.size()
+				for i in xforms.size():
+					mm.set_instance_transform(i, xforms[i] * part.xf)
+				var mmi := MultiMeshInstance3D.new()
+				mmi.multimesh = mm
+				mmi.top_level = true # instance transforms are already in world space
+				mmi.cast_shadow = part.shadow
+				if part.material:
+					mmi.material_override = part.material
+				mmi.visibility_range_end = vis_end
+				add_child(mmi)
+				mmi.global_transform = Transform3D.IDENTITY
+				_spawned.append(mmi)
+
+	if hard:
+		for i in _hard_items.size():
+			var key := Vector2i(floori(_hard_items[i].pos.x / COLLIDER_CELL), floori(_hard_items[i].pos.y / COLLIDER_CELL))
+			if not _hard_cells.has(key):
+				_hard_cells[key] = PackedInt32Array()
+			_hard_cells[key].append(i)
+		_stream_timer = 0.0
 
 
-func _add_collider(inst: Node3D, e: ScatterEntry) -> void:
-	var info: Dictionary = _info[e]
+## Every MeshInstance3D in the entry's scene, as {mesh, xf (relative to the
+## scene root), material (override or null), shadow mode}.
+func _get_parts(e: ScatterEntry) -> Array:
+	if _parts.has(e):
+		return _parts[e]
+	var out := []
+	var root := e.scene.instantiate() as Node3D
+	if root:
+		_collect_parts(root, Transform3D.IDENTITY, out)
+		root.free()
+	_parts[e] = out
+	return out
+
+
+func _collect_parts(node: Node, xf: Transform3D, out: Array) -> void:
+	var mi := node as MeshInstance3D
+	if mi and mi.mesh:
+		var mesh: Mesh = mi.mesh
+		# Per-surface overrides can't be set on a MultiMeshInstance3D, so bake them
+		# into a copy of the mesh.
+		for s in mesh.get_surface_count():
+			var ov := mi.get_surface_override_material(s)
+			if ov:
+				if mesh == mi.mesh:
+					mesh = mesh.duplicate()
+				mesh.surface_set_material(s, ov)
+		out.append({"mesh": mesh, "xf": xf, "material": mi.material_override, "shadow": mi.cast_shadow})
+	for child in node.get_children():
+		var child_xf := xf
+		var c3 := child as Node3D
+		if c3:
+			child_xf = xf * c3.transform
+		_collect_parts(child, child_xf, out)
+
+
+# --- Colliders near the player -------------------------------------------------
+
+func _process(delta: float) -> void:
+	if _hard_items.is_empty():
+		return
+	_stream_timer -= delta
+	if _stream_timer > 0.0:
+		return
+	_stream_timer = 0.2
+	var player := get_tree().get_first_node_in_group("player") as Node3D
+	if player == null:
+		return
+	_stream_colliders(Vector2(player.global_position.x, player.global_position.z))
+
+
+func _stream_colliders(center: Vector2) -> void:
+	var r := collider_distance
+	var c0 := Vector2i(floori((center.x - r) / COLLIDER_CELL), floori((center.y - r) / COLLIDER_CELL))
+	var c1 := Vector2i(floori((center.x + r) / COLLIDER_CELL), floori((center.y + r) / COLLIDER_CELL))
+	var wanted := {}
+	for x in range(c0.x, c1.x + 1):
+		for y in range(c0.y, c1.y + 1):
+			for i in _hard_cells.get(Vector2i(x, y), PackedInt32Array()):
+				if _hard_items[i].pos.distance_to(center) <= r:
+					wanted[i] = true
+					if not _active.has(i):
+						_active[i] = _make_collider(_hard_items[i])
+	# Drop colliders that are well out of range (a little slack avoids flicker).
+	var drop := []
+	for i in _active:
+		if not wanted.has(i) and _hard_items[i].pos.distance_to(center) > r + 8.0:
+			drop.append(i)
+	for i in drop:
+		var n: Node = _active[i]
+		_active.erase(i)
+		if is_instance_valid(n):
+			remove_child(n)
+			n.free()
+
+
+func _make_collider(item: Dictionary) -> Node3D:
+	var info: Dictionary = _info[item.entry]
 	var shape: Shape3D = info.shape
 	if shape == null:
-		return
+		return null
+	# Same layout as before: a scaled holder, with the body and shape under it.
+	var holder := Node3D.new()
+	add_child(holder)
+	holder.global_transform = item.xform
 	var col := CollisionShape3D.new()
 	col.shape = shape
 	col.position = info.offset
 	var body := StaticBody3D.new()
 	body.add_child(col)
-	inst.add_child(body)
-
-
-func _strip_collision(node: Node) -> void:
-	for child in node.get_children():
-		if child is CollisionObject3D:
-			child.queue_free()
-		else:
-			_strip_collision(child)
+	holder.add_child(body)
+	return holder
