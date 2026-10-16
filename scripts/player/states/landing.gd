@@ -10,6 +10,7 @@ var _time := 0.0
 func enter() -> void:
 	_time = 0.0
 	character.play(character.anim_jump_land)
+	character.play_landing_sound()
 
 
 func update(delta: float) -> String:

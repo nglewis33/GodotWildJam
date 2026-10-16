@@ -21,6 +21,8 @@ extends AudioStreamPlayer
 @export_group("Sync")
 ## Times in the walk animation (seconds) when a foot lands.
 @export var contact_times := PackedFloat32Array([0.13, 0.69])
+## Same for the Sprint animation (estimated; adjust if sprint steps feel off).
+@export var sprint_contact_times := PackedFloat32Array([0.07, 0.35])
 ## Nudge all footsteps later (+) or earlier (-) in seconds if they feel off.
 @export var sync_offset := 0.0
 
@@ -51,8 +53,13 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	var anim: AnimationPlayer = _character.get("anim")
-	if anim == null or not anim.is_playing() \
-			or anim.current_animation != _character.get("anim_walk"):
+	if anim == null or not anim.is_playing():
+		_last_anim = ""
+		return
+	var contacts := contact_times
+	if anim.current_animation == _character.get("anim_sprint"):
+		contacts = sprint_contact_times
+	elif anim.current_animation != _character.get("anim_walk"):
 		_last_anim = ""
 		return
 
@@ -64,7 +71,7 @@ func _process(_delta: float) -> void:
 		_last_pos = pos
 		return
 
-	for contact in contact_times:
+	for contact in contacts:
 		var t := fposmod(contact + sync_offset, length)
 		var crossed := false
 		if pos >= _last_pos:
@@ -72,11 +79,12 @@ func _process(_delta: float) -> void:
 		else:  # the loop wrapped around
 			crossed = t > _last_pos or t <= pos
 		if crossed:
-			_play_step()
+			play_step()
 	_last_pos = pos
 
 
-func _play_step() -> void:
+## volume_scale multiplies the loudness (1.2 = 20% louder).
+func play_step(volume_scale := 1.0) -> void:
 	var n := step_ends.size()
 	if stream == null or n == 0:
 		return
@@ -93,7 +101,8 @@ func _play_step() -> void:
 		from += maxf(step_hit_offsets[idx] - 0.01, 0.0)
 
 	pitch_scale = _base_pitch * (1.0 + randf_range(-pitch_variation, pitch_variation))
-	volume_db = _base_volume_db + randf_range(-volume_variation_db, volume_variation_db)
+	volume_db = _base_volume_db + randf_range(-volume_variation_db, volume_variation_db) \
+			+ linear_to_db(maxf(volume_scale, 0.001))
 	play(from)
 	# Cut off at the end of this step's slice so the next step's sound never leaks in.
 	_stop_timer.start(maxf((step_ends[idx] - from) / pitch_scale, 0.05))

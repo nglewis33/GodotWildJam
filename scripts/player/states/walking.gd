@@ -4,12 +4,24 @@ extends State
 const STOP_SPEED := 0.05
 
 
+var _current := ""
+
+
 func enter() -> void:
-	character.play(character.anim_walk)
+	_current = _wanted_anim()
+	character.play(_current)
+
+
+func _wanted_anim() -> String:
+	return character.anim_sprint if character.is_sprinting() else character.anim_walk
 
 
 func update(delta: float) -> String:
 	character.apply_move(delta)
+	var want := _wanted_anim()
+	if want != _current:
+		_current = want
+		character.play(want)
 	character.sync_anim_speed()
 	if not character.is_on_floor():
 		return "Falling"

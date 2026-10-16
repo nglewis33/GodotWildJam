@@ -4,6 +4,7 @@ extends CharacterBody3D
 
 @export var anim_idle := "Idle"
 @export var anim_walk := "Walk"
+@export var anim_sprint := "Sprint"
 @export var anim_jump_start := "Jump_Start"
 @export var anim_jump := "Jump"
 @export var anim_jump_land := "Jump_Land"
@@ -29,6 +30,24 @@ extends CharacterBody3D
 ## Seconds after jumping before the character can jump again.
 @export var jump_cooldown := 1.0
 
+@export_group("Sprint")
+## Hold this key (with W) to run.
+@export var sprint_key: Key = KEY_SHIFT
+@export var sprint_speed := 3.0
+## Forward speed in the air while sprinting (so jumping keeps your run speed).
+@export var air_sprint_speed := 3.0
+@export var max_stamina := 200.0
+## Stamina used per second while running.
+@export var stamina_drain := 20.0
+## Stamina gained per second when not running.
+@export var stamina_regen := 30.0
+## Gain per second after running out; no running again until the bar is full.
+@export var stamina_exhausted_regen := 20.0
+
+@export_group("Audio")
+## Landing plays a footstep at this volume multiplier.
+@export var landing_volume_scale := 1.2
+
 @export_group("Turning")
 ## Radians per pixel of mouse movement.
 @export var mouse_sensitivity := 0.003
@@ -46,12 +65,17 @@ var states := {}
 var _spawn_position: Vector3
 var _pending_turn := 0.0  # radians still to turn
 var _jump_cooldown_left := 0.0
+var stamina := 200.0
+var exhausted := false
+var _sprinting := false
 @onready var anim: AnimationPlayer = find_child("AnimationPlayer", true, false)
 
 
 func _ready() -> void:
 	add_to_group("player")
+	stamina = max_stamina
 	add_child(JumpRing.new())
+	add_child(StaminaBar.new())
 	var health := Health.new()
 	health.name = "Health"
 	add_child(health)
@@ -79,6 +103,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _physics_process(delta: float) -> void:
 	_apply_turn(delta)
 	_jump_cooldown_left = maxf(_jump_cooldown_left - delta, 0.0)
+	_update_stamina(delta)
 
 	if not is_on_floor():
 		velocity.y -= gravity * delta
@@ -147,6 +172,37 @@ func start_jump_cooldown() -> void:
 	_jump_cooldown_left = jump_cooldown
 
 
+func _update_stamina(delta: float) -> void:
+	_sprinting = is_key(sprint_key) and is_moving() and not exhausted and stamina > 0.0
+	if _sprinting:
+		stamina = maxf(stamina - stamina_drain * delta, 0.0)
+		if stamina <= 0.0:
+			exhausted = true
+			_sprinting = false
+	else:
+		var rate := stamina_exhausted_regen if exhausted else stamina_regen
+		stamina = minf(stamina + rate * delta, max_stamina)
+		if exhausted and stamina >= max_stamina:
+			exhausted = false
+
+
+## True while running (Shift + W with stamina left).
+func is_sprinting() -> bool:
+	return _sprinting
+
+
+## 0..1 stamina.
+func stamina_fraction() -> float:
+	return clampf(stamina / maxf(max_stamina, 0.001), 0.0, 1.0)
+
+
+## Footstep sound, a bit louder, for touching down.
+func play_landing_sound() -> void:
+	var fs := get_node_or_null("Footsteps")
+	if fs and fs.has_method("play_step"):
+		fs.play_step(landing_volume_scale)
+
+
 ## Only W moves the character; the mouse turns it.
 func is_moving() -> bool:
 	return is_key(KEY_W)
@@ -161,7 +217,8 @@ func horizontal_speed() -> float:
 ## feet don't slide while speeding up or slowing down.
 func sync_anim_speed() -> void:
 	if anim:
-		anim.speed_scale = clampf(horizontal_speed() / move_speed, 0.3, 1.0)
+		var ref := sprint_speed if anim.current_animation == anim_sprint else move_speed
+		anim.speed_scale = clampf(horizontal_speed() / maxf(ref, 0.01), 0.3, 1.0)
 
 
 ## Speed up toward full speed while W is held, otherwise slow down.
@@ -169,7 +226,11 @@ func apply_move(delta: float) -> void:
 	var in_air := not is_on_floor()
 	if in_air and not air_movement:
 		return  # no air control: keep the momentum we left the ground with
-	var speed := air_move_speed if in_air else move_speed
+	var speed := move_speed
+	if in_air:
+		speed = air_sprint_speed if _sprinting else air_move_speed
+	elif _sprinting:
+		speed = sprint_speed
 	var target := Vector2.ZERO
 	var rate := deceleration
 	if is_moving():
