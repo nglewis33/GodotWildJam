@@ -49,6 +49,13 @@ enum Quadrant { RANDOM, NW, NE, SW, SE }
 @export_range(0.2, 1.0, 0.01) var fork_width_scale := 0.75
 ## Allow forks to branch off other forks, not just the main path.
 @export var branch_from_forks := true
+## A fork leaves its parent path at an angle between these two values.
+@export_range(10.0, 90.0, 1.0) var fork_min_angle := 45.0
+@export_range(10.0, 120.0, 1.0) var fork_max_angle := 80.0
+## Forks dead-end rather than come closer than this to any other path.
+@export var fork_clearance := 15.0
+## Forks steer away from any path within this distance (past or future path).
+@export var fork_avoid_radius := 40.0
 
 @export_group("Circles")
 @export var start_radius := 6.0
@@ -402,7 +409,10 @@ func _make_fork(polylines: Array, origins: Array[Vector2], inner: Rect2) -> Dict
 		var pts: PackedVector2Array = polylines[pi].pts
 		for i in range(1, pts.size() - 1):
 			candidates.append([pi, i])
-	var spacing := maxf(path_width * 3.0, 8.0)
+	var spacing := maxf(maxf(fork_clearance * 2.0, path_width * 3.0), 8.0)
+	var min_a := deg_to_rad(fork_min_angle)
+	var max_a := deg_to_rad(maxf(fork_max_angle, fork_min_angle))
+	var turn := 0.05 + 0.35 * curviness
 	for attempt in 40:
 		if candidates.is_empty():
 			return {}
@@ -420,38 +430,68 @@ func _make_fork(polylines: Array, origins: Array[Vector2], inner: Rect2) -> Dict
 				break
 		if not ok:
 			continue
-		origins.append(origin)
+
+		# Leave the path at a decent angle, on whichever side has more open space.
 		var tangent := (pts[c[1] + 1] - pts[c[1] - 1]).angle()
-		var side := 1.0 if _rng.randf() < 0.5 else -1.0
-		var heading := tangent + side * deg_to_rad(_rng.randf_range(35.0, 80.0))
+		var ang := _rng.randf_range(min_a, max_a)
+		var h1 := tangent + ang
+		var h2 := tangent - ang
+		var o1: float = _path_probe(origin + Vector2.from_angle(h1) * fork_avoid_radius, polylines, c[0], c[1])[0]
+		var o2: float = _path_probe(origin + Vector2.from_angle(h2) * fork_avoid_radius, polylines, c[0], c[1])[0]
+		var heading: float
+		if is_equal_approx(o1, o2):
+			heading = h1 if _rng.randf() < 0.5 else h2
+		else:
+			heading = h1 if o1 > o2 else h2
+
 		var length := maxf(_rng.randfn(fork_length, fork_length * fork_length_variation), 6.0)
-		var turn := 0.05 + 0.35 * curviness
 		var out := PackedVector2Array([origin])
 		var pos := origin
+		var probe := _path_probe(pos, polylines, c[0], c[1])
 		var steps := maxi(2, ceili(length / STEP))
 		for s in steps:
 			heading += _rng.randf_range(-turn, turn)
-			var nxt := pos + Vector2.from_angle(heading) * STEP
+			# Steer away from the path (all of it, not just what's behind us).
+			var dir := (Vector2.from_angle(heading) + probe[1] * 2.0).normalized()
+			heading = dir.angle()
+			var nxt := pos + dir * STEP
 			if not inner.has_point(nxt) or nxt.distance_to(end_position) < end_clearance:
 				break
-			if c[0] == 0 and _near_other_leg(polylines[0].pts, c[1], nxt):
+			var p2 := _path_probe(nxt, polylines, c[0], c[1])
+			if p2[0] < fork_clearance:
 				break
 			pos = nxt
+			probe = p2
 			out.append(pos)
 		if out.size() < 3:
 			continue
+		origins.append(origin)
 		return {"pts": out, "width": path_width * fork_width_scale}
 	return {}
 
 
-## True if p is close to a stretch of the main path far (along the path) from index `from`.
-func _near_other_leg(main: PackedVector2Array, from: int, p: Vector2) -> bool:
-	var skip := ceili(leg_clearance * 1.5 / STEP)
-	var lim := leg_clearance * 0.5
-	for j in main.size():
-		if absi(j - from) > skip and main[j].distance_squared_to(p) < lim * lim:
-			return true
-	return false
+## Returns [distance to the nearest path (1e9 if none within fork_avoid_radius),
+## Vector2 push away from the path, longer when closer]. Ignores the stretch of the
+## parent path right around the fork's origin (index `own_idx` of polyline `own`).
+func _path_probe(p: Vector2, polylines: Array, own: int, own_idx: int) -> Array:
+	var skip := ceili(fork_avoid_radius / STEP)
+	var r2 := fork_avoid_radius * fork_avoid_radius
+	var nearest := 1e9
+	var push := Vector2.ZERO
+	for pi in polylines.size():
+		var pts: PackedVector2Array = polylines[pi].pts
+		for j in pts.size():
+			if pi == own and absi(j - own_idx) <= skip:
+				continue
+			var d2 := pts[j].distance_squared_to(p)
+			if d2 >= r2:
+				continue
+			var d := sqrt(d2)
+			nearest = minf(nearest, d)
+			push += (p - pts[j]) / maxf(d, 0.001) * (1.0 - d / fork_avoid_radius)
+	if push.length() > 0.0001:
+		push = push.normalized() * (1.0 - nearest / fork_avoid_radius)
+	return [nearest, push]
 
 
 func _clamp_to(r: Rect2, p: Vector2) -> Vector2:
