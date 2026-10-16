@@ -20,6 +20,9 @@ extends Node3D
 ## 0 = random tile choice each run.
 @export var seed_value := 0
 @export var generate_on_ready := true
+## Tiles farther than this from the camera aren't drawn (0 = always draw).
+## Keep it above the fog distance and the Scatter view_distance so no edge shows.
+@export var view_distance := 200.0
 
 var tile_size := Vector2.ZERO
 var _spacing := Vector2.ZERO  # distance between neighboring tile origins
@@ -72,6 +75,7 @@ func generate() -> void:
 				0.0,
 				_origin_offset.y + j * _spacing.y)
 			_tiles.append(tile)
+			_limit_view(tile)
 			_add_collision(tile)
 
 
@@ -130,6 +134,15 @@ func _collect_aabb(node: Node, xf: Transform3D, box: AABB, found: bool) -> Array
 		box = r[0]
 		found = r[1]
 	return [box, found]
+
+
+func _limit_view(tile: Node) -> void:
+	if view_distance <= 0.0:
+		return
+	# Distance is measured to the tile's middle, so add half a tile.
+	var end := view_distance + tile_size.length() * 0.5
+	for n in tile.find_children("*", "GeometryInstance3D", true, false):
+		(n as GeometryInstance3D).visibility_range_end = end
 
 
 ## Every tile of the same kind shares one collision shape (building a separate
