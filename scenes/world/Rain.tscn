@@ -1,7 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://scripts/world/rain.gd" id="1_rain"]
-[ext_resource type="AudioStream" path="res://assets/audio/ambience/dragon-studio-relaxing-rain-444802.mp3" id="2_snd"]
+[ext_resource type="AudioStream" path="res://assets/audio/ambience/rain_loop.ogg" id="2_snd"]
 
 [node name="Rain" type="Node3D"]
 script = ExtResource("1_rain")
