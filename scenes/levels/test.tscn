@@ -204,7 +204,7 @@ drop_alpha = 0.12
 [node name="PathGenerator" type="Node3D" parent="." unique_id=2047529965 node_paths=PackedStringArray("ground_grid")]
 script = ExtResource("70_pathgen")
 ground_grid = NodePath("../Ground")
-end_distance = 160.0
+end_distance = 60.0
 curviness = 0.67
 fork_count = 6
 start_radius = 8.0

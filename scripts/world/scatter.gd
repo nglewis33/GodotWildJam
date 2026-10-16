@@ -12,7 +12,7 @@ extends Node3D
 @export_group("Area")
 ## The scatter area is sized and centered to cover the whole map.
 @export var ground_grid: GroundGrid
-## Nothing is placed within this radius of this node (put it at the player spawn).
+## Nothing is placed within this radius of the path's start (or of this node if no path_generator).
 @export var clearing_radius := 50.0
 ## If set, nothing is placed on or near the generated dirt path.
 @export var path_generator: PathGenerator
@@ -227,6 +227,8 @@ func _plan(entries: Array, target: int, label: String) -> Array:
 		target = max_objects
 
 	var clear_center := Vector2(global_position.x, global_position.z)
+	if path_generator:
+		clear_center = path_generator.start_position
 	var half := _area * 0.5
 	var space := get_world_3d().direct_space_state
 	var max_slope := deg_to_rad(max_slope_degrees)

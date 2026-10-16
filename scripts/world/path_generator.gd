@@ -1,7 +1,7 @@
 class_name PathGenerator
 extends Node3D
-## Procedurally "paints" a dirt path onto the ground: a big start circle at the
-## player, a main path to a definite end point, and dead-end forks.
+## Procedurally "paints" a dirt path onto the ground: a big start circle in the
+## middle of a quadrant, a main path to an end point in the opposite quadrant, and dead-end forks.
 ## The path is drawn into a mask texture and projected onto the ground with a
 ## Decal, so it follows hills and forks look natural. Scatter can query
 ## distance_to_path() to keep trees, rocks and grass off the path.
@@ -10,11 +10,14 @@ extends Node3D
 @export var ground_grid: GroundGrid
 
 @export_group("Path")
-## How far the end point is from the start (clamped to stay inside the map).
-@export var end_distance := 80.0
-@export var random_direction := true
-## Used when random_direction is off (0 = +X, 90 = +Z).
-@export var end_angle_degrees := 0.0
+enum Quadrant { RANDOM, NW, NE, SW, SE }
+## The start circle sits in the middle of this quadrant; the end is in the opposite one.
+@export var start_quadrant := Quadrant.RANDOM
+## 0 = end just inside the near corner (map center) of the opposite quadrant,
+## 100 = at the far corner of the map. Both keep a start-circle-sized buffer.
+@export_range(0.0, 100.0, 0.1) var end_distance := 50.0
+## Random offset (+/- per axis, world units) added to the end point.
+@export var end_noise := 2.0
 @export var path_width := 3.0
 ## 0 = nearly straight, 1 = winding.
 @export_range(0.0, 1.0, 0.01) var curviness := 0.5
@@ -119,14 +122,11 @@ func generate() -> void:
 	_bounds = Rect2(center - size * 0.5, size)
 	var inner := _bounds.grow(-(path_width + maxf(start_radius, end_radius)))
 
-	# Start at the player.
-	start_position = Vector2(global_position.x, global_position.z)
-	var player := get_tree().get_first_node_in_group("player") as Node3D
-	if player:
-		start_position = Vector2(player.global_position.x, player.global_position.z)
-	start_position = _clamp_to(inner, start_position)
-
-	end_position = _pick_end(inner)
+	# Start in the middle of a quadrant; end in the opposite one.
+	var sq := _pick_quadrant()
+	var s := Vector2(1.0 if sq.x == 1 else -1.0, 1.0 if sq.y == 1 else -1.0)
+	start_position = _clamp_to(inner, center + s * size * 0.25)
+	end_position = _pick_end(center, size, -s, inner)
 
 	var polylines: Array = [{"pts": _main_points(inner), "width": path_width}]
 	var origins: Array[Vector2] = []
@@ -151,29 +151,23 @@ func generate() -> void:
 
 # --- Layout -----------------------------------------------------------------
 
-func _pick_end(inner: Rect2) -> Vector2:
-	var tries := 16 if random_direction else 1
-	for t in tries:
-		var angle := _rng.randf() * TAU if random_direction else deg_to_rad(end_angle_degrees)
-		var dist := end_distance
-		for k in 40:
-			var p := start_position + Vector2.from_angle(angle) * dist
-			if inner.has_point(p):
-				if dist >= end_distance * 0.999 or t == tries - 1:
-					return p
-				break # fits fully; keep it
-			dist *= 0.93
-		# Accept a shortened path only on the final try.
-		var q := start_position + Vector2.from_angle(angle) * end_distance
-		if inner.has_point(q):
-			return q
-	# Fall back to heading for the map center, shortened to fit.
-	var to_c := (_bounds.get_center() - start_position)
-	var dir := to_c.normalized() if to_c.length() > 0.1 else Vector2.RIGHT
-	var d := end_distance
-	while d > 1.0 and not inner.has_point(start_position + dir * d):
-		d *= 0.9
-	return start_position + dir * d
+func _pick_quadrant() -> Vector2i:
+	match start_quadrant:
+		Quadrant.NW: return Vector2i(0, 0)
+		Quadrant.NE: return Vector2i(1, 0)
+		Quadrant.SW: return Vector2i(0, 1)
+		Quadrant.SE: return Vector2i(1, 1)
+	return Vector2i(_rng.randi() % 2, _rng.randi() % 2)
+
+
+## dir = (+/-1, +/-1) pointing from the map center into the end quadrant.
+func _pick_end(center: Vector2, size: Vector2, dir: Vector2, inner: Rect2) -> Vector2:
+	var buffer := Vector2(start_radius, start_radius)
+	var near := center + dir * buffer
+	var far := center + dir * (size * 0.5 - buffer)
+	var p := near.lerp(far, clampf(end_distance / 100.0, 0.0, 1.0))
+	p += Vector2(_rng.randf_range(-end_noise, end_noise), _rng.randf_range(-end_noise, end_noise))
+	return _clamp_to(inner, p)
 
 
 func _main_points(inner: Rect2) -> PackedVector2Array:
