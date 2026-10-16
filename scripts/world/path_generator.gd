@@ -2,8 +2,8 @@ class_name PathGenerator
 extends Node3D
 ## Procedurally "paints" a dirt path onto the ground: a big start circle in the
 ## middle of a quadrant, a main path to an end point in the opposite quadrant, and dead-end forks.
-## The path is drawn into a mask texture and projected onto the ground with a
-## Decal, so it follows hills and forks look natural. Scatter can query
+## The path is drawn into a mask texture and shown on the ground through an
+## overlay material (Decals don't work in Compatibility), so it follows hills. Scatter can query
 ## distance_to_path() to keep trees, rocks and grass off the path.
 ## Don't rotate or scale this node.
 
@@ -69,14 +69,34 @@ enum Quadrant { RANDOM, NW, NE, SW, SE }
 ## Mask texture size (longest side). Higher = sharper edges, slower to generate.
 @export var texture_size := 1024
 ## Vertical size of the projection box (must cover the ground's hills).
-@export var decal_height := 16.0
 
 @export_group("Generation")
 ## 0 = a new random path every run.
 @export var seed_value := 0
 @export var generate_on_ready := true
 
-const PAINT_LAYER := 1 << 19 ## Visual layer 20: ground meshes only, so trees/player stay clean.
+const PAINT_SHADER := """
+shader_type spatial;
+render_mode blend_mix, depth_draw_never, cull_back;
+uniform sampler2D mask : filter_linear_mipmap, repeat_disable;
+uniform vec2 origin;
+uniform vec2 extent;
+uniform vec4 tint : source_color = vec4(0.3, 0.2, 0.11, 1.0);
+varying vec3 wpos;
+void vertex() {
+	wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	VERTEX += NORMAL * 0.03;
+}
+void fragment() {
+	vec2 uv = (wpos.xz - origin) / extent;
+	float inside = step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);
+	float a = texture(mask, uv).a * inside * tint.a;
+	ALBEDO = tint.rgb;
+	ROUGHNESS = 1.0;
+	SPECULAR = 0.0;
+	ALPHA = a;
+}
+"""
 const HASH_CELL := 10.0
 const QUERY_RANGE := 8.0 ## distance_to_path() is exact within this distance.
 const STEP := 2.0
@@ -91,7 +111,7 @@ var _segments: Array = [] # [Vector2 a, Vector2 b, float radius]
 var _hash := {}
 var _rng := RandomNumberGenerator.new()
 var _bounds := Rect2()
-var _decal: Decal
+var _paint_material: ShaderMaterial
 var _noise := FastNoiseLite.new()
 
 
@@ -103,9 +123,10 @@ func _ready() -> void:
 func clear() -> void:
 	_segments.clear()
 	_hash.clear()
-	if is_instance_valid(_decal):
-		_decal.queue_free()
-	_decal = null
+	if ground_grid != null and _paint_material != null:
+		for n in ground_grid.find_children("*", "GeometryInstance3D", true, false):
+			(n as GeometryInstance3D).material_overlay = null
+	_paint_material = null
 
 
 ## Distance from a world XZ point to the edge of the path (negative inside).
@@ -142,7 +163,6 @@ func generate() -> void:
 	var c := ground_grid.get_map_center()
 	var center := Vector2(c.x, c.z)
 	var size := ground_grid.get_map_size()
-	var ground_y := ground_grid.global_position.y
 	if size.x <= 0.0 or size.y <= 0.0:
 		push_warning("PathGenerator: map size is zero (is the ground generated?).")
 		return
@@ -171,8 +191,7 @@ func generate() -> void:
 	_segments.append([end_position, end_position, end_radius])
 	_build_hash()
 
-	_make_decal(center, size, ground_y)
-	_mark_ground()
+	_make_paint(center, size)
 	print("PathGenerator: start %s, end %s, %d checkpoints, %d forks." % [start_position, end_position, checkpoints.size(), polylines.size() - 1])
 	generated.emit()
 
@@ -532,7 +551,7 @@ func _dist_seg(p: Vector2, a: Vector2, b: Vector2) -> float:
 
 # --- Painting -----------------------------------------------------------------
 
-func _make_decal(center: Vector2, size: Vector2, ground_y: float) -> void:
+func _make_paint(center: Vector2, size: Vector2) -> void:
 	var mpp := maxf(size.x, size.y) / float(maxi(texture_size, 64))
 	var w := maxi(ceili(size.x / mpp), 1)
 	var h := maxi(ceili(size.y / mpp), 1)
@@ -560,20 +579,23 @@ func _make_decal(center: Vector2, size: Vector2, ground_y: float) -> void:
 					img.set_pixel(x, y, Color(path_color.r, path_color.g, path_color.b, cov))
 	img.generate_mipmaps()
 
-	_decal = Decal.new()
-	_decal.texture_albedo = ImageTexture.create_from_image(img)
-	_decal.size = Vector3(w * mpp, decal_height, h * mpp)
-	_decal.cull_mask = PAINT_LAYER
-	_decal.upper_fade = 0.01
-	_decal.lower_fade = 0.01
-	_decal.modulate = Color(1, 1, 1, path_color.a)
-	add_child(_decal)
-	_decal.global_position = Vector3(origin.x + w * mpp * 0.5, ground_y + decal_height * 0.25, origin.y + h * mpp * 0.5)
+	var tex := ImageTexture.create_from_image(img)
+	var sh := Shader.new()
+	sh.code = PAINT_SHADER
+	var mat := ShaderMaterial.new()
+	mat.shader = sh
+	mat.set_shader_parameter("mask", tex)
+	mat.set_shader_parameter("origin", origin)
+	mat.set_shader_parameter("extent", Vector2(w * mpp, h * mpp))
+	mat.set_shader_parameter("tint", Color(path_color.r, path_color.g, path_color.b, path_color.a))
+	_paint_material = mat
+	_apply_paint()
 
 
-## Puts the ground meshes on the paint layer so only they receive the decal.
-func _mark_ground() -> void:
-	if ground_grid == null:
+## Decals don't exist in the Compatibility renderer, so the path is drawn as an
+## overlay material on every ground mesh instead.
+func _apply_paint() -> void:
+	if ground_grid == null or _paint_material == null:
 		return
-	for n in ground_grid.find_children("*", "VisualInstance3D", true, false):
-		(n as VisualInstance3D).layers |= PAINT_LAYER
+	for n in ground_grid.find_children("*", "GeometryInstance3D", true, false):
+		(n as GeometryInstance3D).material_overlay = _paint_material
