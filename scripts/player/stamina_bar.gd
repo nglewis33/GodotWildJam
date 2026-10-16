@@ -82,8 +82,8 @@ func _process(delta: float) -> void:
 	else:
 		_since_change += delta
 	_prev = f
-	var show := _since_change < hold_time
-	_fade = move_toward(_fade, 1.0 if show else 0.0, delta / maxf(fade_time, 0.001))
+	var showing := _since_change < hold_time
+	_fade = move_toward(_fade, 1.0 if showing else 0.0, delta / maxf(fade_time, 0.001))
 	visible = _fade > 0.0
 	_mat.set_shader_parameter("progress", f)
 	_mat.set_shader_parameter("fade", _fade)

@@ -7,7 +7,7 @@ extends Node3D
 ## (Volumetric fog and fog volumes aren't available in the Compatibility
 ## renderer, so the flashlight beam is a cone mesh and the mist is faked.)
 
-@export_tool_button("Apply / Refresh", "Reload") var _refresh_button = apply
+@export_tool_button("Apply / Refresh", "Reload") var refresh_button = apply
 
 @export_group("Night")
 @export var background_color := Color(0.01, 0.015, 0.03)
