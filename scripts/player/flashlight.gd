@@ -12,7 +12,13 @@ extends SpotLight3D
 @export var beam_enabled := true
 @export var beam_color := Color(1.0, 0.95, 0.8)
 ## Brightness of the beam (it adds to what's behind it).
-@export_range(0.0, 1.0, 0.01) var beam_strength := 0.16
+@export_range(0.0, 1.0, 0.01) var beam_strength := 0.12
+## Width of the visible beam compared with the light's spot angle (smaller = tighter).
+@export_range(0.1, 1.0, 0.01) var beam_width := 0.4
+## Nested cones that make the beam brightest along its center (1 = flat).
+@export_range(1, 5) var beam_layers := 3
+## How much of the light's range the beam covers.
+@export_range(0.1, 1.0, 0.01) var beam_length := 0.8
 
 const BEAM_SHADER := """
 shader_type spatial;
@@ -27,13 +33,13 @@ void vertex() {
 }
 void fragment() {
 	float facing = abs(dot(normalize(NORMAL), normalize(VIEW)));
-	float a = pow(1.0 - along, 1.6) * smoothstep(0.0, 0.12, along) * pow(facing, 1.4);
+	float a = pow(1.0 - along, 1.8) * smoothstep(0.0, 0.15, along) * pow(facing, 1.2);
 	ALBEDO = beam_color.rgb * a * strength;
 	ALPHA = 1.0;
 }
 """
 
-var _beam: MeshInstance3D
+var _beam: Node3D
 
 
 func _ready() -> void:
@@ -43,30 +49,36 @@ func _ready() -> void:
 
 
 func _build_beam() -> void:
-	var cone := CylinderMesh.new()
-	cone.top_radius = 0.0
-	cone.bottom_radius = spot_range * tan(deg_to_rad(spot_angle))
-	cone.height = spot_range
-	cone.radial_segments = 24
-	cone.rings = 1
-	cone.cap_top = false
-	cone.cap_bottom = false
+	var length := spot_range * beam_length
+	var full_radius := length * tan(deg_to_rad(spot_angle * beam_width))
 	var sh := Shader.new()
 	sh.code = BEAM_SHADER
 	var mat := ShaderMaterial.new()
 	mat.shader = sh
 	mat.render_priority = 5
 	mat.set_shader_parameter("beam_color", beam_color)
-	mat.set_shader_parameter("strength", beam_strength)
-	mat.set_shader_parameter("cone_height", spot_range)
-	_beam = MeshInstance3D.new()
-	_beam.mesh = cone
-	_beam.material_override = mat
-	_beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	# Spot lights shine along -Z; put the cone's apex at the light.
+	mat.set_shader_parameter("strength", beam_strength / beam_layers)
+	mat.set_shader_parameter("cone_height", length)
+	_beam = Node3D.new()
+	_beam.name = "Beam"
+	# Spot lights shine along -Z; put the cones' apex at the light.
 	_beam.rotation_degrees = Vector3(90.0, 0.0, 0.0)
-	_beam.position = Vector3(0.0, 0.0, -spot_range * 0.5)
+	_beam.position = Vector3(0.0, 0.0, -length * 0.5)
 	add_child(_beam)
+	for i in beam_layers:
+		var cone := CylinderMesh.new()
+		cone.top_radius = 0.0
+		cone.bottom_radius = full_radius * float(beam_layers - i) / beam_layers
+		cone.height = length
+		cone.radial_segments = 24
+		cone.rings = 1
+		cone.cap_top = false
+		cone.cap_bottom = false
+		var mi := MeshInstance3D.new()
+		mi.mesh = cone
+		mi.material_override = mat
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_beam.add_child(mi)
 
 
 func _unhandled_input(event: InputEvent) -> void:

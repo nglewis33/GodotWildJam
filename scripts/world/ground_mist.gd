@@ -25,16 +25,16 @@ uniform vec2 drift = vec2(0.006, 0.003);
 uniform vec2 offset = vec2(0.0);
 uniform float radius = 70.0;
 varying vec3 wpos;
-varying float rdist;
+varying vec3 local_pos;
 void vertex() {
 	wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	rdist = length(VERTEX.xz);
+	local_pos = VERTEX; // length() must be taken per pixel; per vertex it would be the same at all four corners
 }
 void fragment() {
 	vec2 uv = wpos.xz * patch_scale + offset + drift * TIME;
 	float n = texture(noise_tex, uv).r * 0.65 + texture(noise_tex, uv * 2.3 - drift * TIME * 1.7).r * 0.35;
 	float m = smoothstep(0.38, 0.75, n);
-	float edge = 1.0 - smoothstep(radius * 0.5, radius, rdist);
+	float edge = 1.0 - smoothstep(radius * 0.5, radius, length(local_pos.xz));
 	ALBEDO = mist_color.rgb;
 	ALPHA = m * edge * opacity;
 }
