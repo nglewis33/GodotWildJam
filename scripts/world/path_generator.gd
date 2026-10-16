@@ -447,18 +447,20 @@ func _make_fork(polylines: Array, origins: Array[Vector2], inner: Rect2) -> Dict
 		var length := maxf(_rng.randfn(fork_length, fork_length * fork_length_variation), 6.0)
 		var out := PackedVector2Array([origin])
 		var pos := origin
-		var probe := _path_probe(pos, polylines, c[0], c[1])
+		var probe: Array = _path_probe(pos, polylines, c[0], c[1])
 		var steps := maxi(2, ceili(length / STEP))
 		for s in steps:
 			heading += _rng.randf_range(-turn, turn)
 			# Steer away from the path (all of it, not just what's behind us).
-			var dir := (Vector2.from_angle(heading) + probe[1] * 2.0).normalized()
+			var push: Vector2 = probe[1]
+			var dir: Vector2 = (Vector2.from_angle(heading) + push * 2.0).normalized()
 			heading = dir.angle()
 			var nxt := pos + dir * STEP
 			if not inner.has_point(nxt) or nxt.distance_to(end_position) < end_clearance:
 				break
-			var p2 := _path_probe(nxt, polylines, c[0], c[1])
-			if p2[0] < fork_clearance:
+			var p2: Array = _path_probe(nxt, polylines, c[0], c[1])
+			var p2_dist: float = p2[0]
+			if p2_dist < fork_clearance:
 				break
 			pos = nxt
 			probe = p2
