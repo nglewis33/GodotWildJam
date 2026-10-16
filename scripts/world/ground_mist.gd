@@ -84,15 +84,28 @@ func rebuild() -> void:
 	_follow()
 
 
-func _process(_delta: float) -> void:
-	_follow()
+var _ground_y := 0.0
+var _has_ground_y := false
 
 
-func _follow() -> void:
+func _process(delta: float) -> void:
+	_follow(delta)
+
+
+func _follow(delta := 0.0) -> void:
 	var player := get_tree().get_first_node_in_group("player") as Node3D if is_inside_tree() else null
 	if player == null:
 		return
+	# Follow the ground under the player, not the player: jumping shouldn't lift the mist.
+	var on_ground := true
+	if player is CharacterBody3D:
+		on_ground = (player as CharacterBody3D).is_on_floor()
+	if not _has_ground_y:
+		_ground_y = player.global_position.y
+		_has_ground_y = true
+	elif on_ground:
+		_ground_y = lerpf(_ground_y, player.global_position.y, 1.0 - exp(-6.0 * delta))
 	var base := player.global_position
 	for i in _meshes.size():
 		var t := float(i + 1) / _meshes.size()
-		_meshes[i].global_position = Vector3(base.x, base.y + 0.1 + height * t, base.z)
+		_meshes[i].global_position = Vector3(base.x, _ground_y + 0.1 + height * t, base.z)
