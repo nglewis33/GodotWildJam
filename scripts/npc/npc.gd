@@ -18,6 +18,7 @@ var _timer := 0.0
 
 
 func _ready() -> void:
+	add_to_group("npc")
 	_ap = find_child("AnimationPlayer", true, false) as AnimationPlayer
 	if _ap == null:
 		push_warning("SittingNpc: no AnimationPlayer found under the Model.")

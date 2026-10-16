@@ -53,6 +53,8 @@ const HASH_CELL := 10.0
 const QUERY_RANGE := 8.0 ## distance_to_path() is exact within this distance.
 const STEP := 2.0
 
+signal generated
+
 var start_position := Vector2.ZERO
 var end_position := Vector2.ZERO
 var _segments: Array = [] # [Vector2 a, Vector2 b, float radius]
@@ -83,6 +85,11 @@ func distance_to_path(p: Vector2) -> float:
 	for s in _hash.get(_cell(p), []):
 		best = minf(best, _dist_seg(p, s[0], s[1]) - s[2])
 	return best
+
+
+## Path pieces as [Vector2 a, Vector2 b, float radius]. a == b means a circle.
+func get_segments() -> Array:
+	return _segments
 
 
 func get_end_position() -> Vector3:
@@ -139,6 +146,7 @@ func generate() -> void:
 	_make_decal(center, size, ground_y)
 	_mark_ground()
 	print("PathGenerator: start %s, end %s, %d forks." % [start_position, end_position, polylines.size() - 1])
+	generated.emit()
 
 
 # --- Layout -----------------------------------------------------------------

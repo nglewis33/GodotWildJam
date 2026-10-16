@@ -41,6 +41,7 @@
 [ext_resource type="PackedScene" path="res://scenes/camp/Tent.tscn" id="73_tent"]
 [ext_resource type="PackedScene" uid="uid://dt0cec400rsmw" path="res://scenes/camp/Log.tscn" id="74_log"]
 [ext_resource type="PackedScene" path="res://scenes/npc/NPC.tscn" id="75_npc"]
+[ext_resource type="Script" path="res://scripts/ui/minimap.gd" id="80_minimap"]
 
 [sub_resource type="Resource" id="Resource_ff7wo"]
 script = ExtResource("6_0w447")
@@ -219,3 +220,8 @@ log_scene = ExtResource("74_log")
 npc_scene = ExtResource("75_npc")
 log_size_override = 2.0
 npc_seat_offset = Vector3(-0.3, 0, 0.2)
+
+[node name="Minimap" type="CanvasLayer" parent="." node_paths=PackedStringArray("ground_grid", "path_generator")]
+script = ExtResource("80_minimap")
+ground_grid = NodePath("../Ground")
+path_generator = NodePath("../PathGenerator")
