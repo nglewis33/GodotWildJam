@@ -51,7 +51,7 @@ light_color = Color(1, 0.95, 0.8, 1)
 light_energy = 4.0
 shadow_enabled = true
 spot_range = 15.0
-spot_angle = 28.0
+spot_angle = 18.0
 script = ExtResource("8_flash")
 
 [node name="Footsteps" type="AudioStreamPlayer" parent="." unique_id=1735954332]
