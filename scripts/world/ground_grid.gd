@@ -29,6 +29,8 @@ var _tiles: Array[Node] = []
 var _shape_cache := {}  # Mesh -> shared collision shape
 
 
+const GROUND_ONLY_LAYER := 20 ## Physics layer used only by ground tiles.
+
 func _ready() -> void:
 	if generate_on_ready:
 		generate()
@@ -141,6 +143,7 @@ func _add_collision(node: Node) -> void:
 			_shape_cache[mi.mesh] = shape
 		if shape:
 			var body := StaticBody3D.new()
+			body.set_collision_layer_value(GROUND_ONLY_LAYER, true) # lets the mist find bare ground
 			var col := CollisionShape3D.new()
 			col.shape = shape
 			body.add_child(col)

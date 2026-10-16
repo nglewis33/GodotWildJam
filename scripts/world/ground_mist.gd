@@ -92,19 +92,32 @@ func _process(delta: float) -> void:
 	_follow(delta)
 
 
+func _physics_process(_delta: float) -> void:
+	# Height of the bare ground (not rocks/logs) under the player.
+	var player := get_tree().get_first_node_in_group("player") as Node3D
+	if player == null:
+		return
+	var from := player.global_position + Vector3.UP * 1.0
+	var q := PhysicsRayQueryParameters3D.create(from, from + Vector3.DOWN * 40.0, 1 << 19)
+	var hit := player.get_world_3d().direct_space_state.intersect_ray(q)
+	if hit:
+		_target_y = (hit.position as Vector3).y
+		if not _has_ground_y:
+			_ground_y = _target_y
+			_has_ground_y = true
+
+
+var _target_y := 0.0
+
+
 func _follow(delta := 0.0) -> void:
 	var player := get_tree().get_first_node_in_group("player") as Node3D if is_inside_tree() else null
 	if player == null:
 		return
-	# Follow the ground under the player, not the player: jumping shouldn't lift the mist.
-	var on_ground := true
-	if player is CharacterBody3D:
-		on_ground = (player as CharacterBody3D).is_on_floor()
 	if not _has_ground_y:
 		_ground_y = player.global_position.y
-		_has_ground_y = true
-	elif on_ground:
-		_ground_y = lerpf(_ground_y, player.global_position.y, 1.0 - exp(-6.0 * delta))
+	else:
+		_ground_y = lerpf(_ground_y, _target_y, 1.0 - exp(-6.0 * delta))
 	var base := player.global_position
 	for i in _meshes.size():
 		var t := float(i + 1) / _meshes.size()
