@@ -3,7 +3,8 @@ extends Node
 
 @export var sign_scene: PackedScene
 @export var features: Array[SignFeature] = []
-@export var distance := 5.0
+@export var distance := 3.5 ## In front of the player (the camp fire is about 6 away).
+@export var side_offset := 1.5 ## Shifts the whole row to the right so it stays off the fire line.
 @export var spacing := 3.0 ## Sideways gap between signs.
 @export var sign_height := 1.8 ## Model is rescaled to this height.
 @export var ray_height := 5.0
@@ -11,8 +12,9 @@ extends Node
 
 
 func _ready() -> void:
-	await get_tree().physics_frame
-	await get_tree().physics_frame
+	# CampSite moves the player after two physics frames; wait for that.
+	for i in 3:
+		await get_tree().physics_frame
 	var player := get_tree().get_first_node_in_group("player") as Node3D
 	if player == null:
 		player = get_parent().get_node_or_null("Player") as Node3D
@@ -27,7 +29,7 @@ func _ready() -> void:
 	var right := Vector3.UP.cross(fwd).normalized()
 	var list: Array = features if not features.is_empty() else [null]
 	for i in list.size():
-		var offset := (i - (list.size() - 1) * 0.5) * spacing
+		var offset := (i - (list.size() - 1) * 0.5) * spacing + side_offset
 		_spawn(player, player.global_position + fwd * distance + right * offset, fwd, list[i])
 
 
