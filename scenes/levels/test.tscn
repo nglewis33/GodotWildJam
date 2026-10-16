@@ -172,6 +172,8 @@ ray_height = 5.0
 ray_depth = 10.0
 
 [node name="Atmosphere" parent="." unique_id=363104454 instance=ExtResource("30_atm")]
+fog_density = 0.08
+mist_height = 0.8
 
 [node name="Ambience" type="Node" parent="." unique_id=2084761881]
 script = ExtResource("40_amb")
