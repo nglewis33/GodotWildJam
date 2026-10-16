@@ -10,10 +10,8 @@ extends Node3D
 @export var soft_objects: Array[ScatterEntry] = []
 
 @export_group("Area")
-## If set, the scatter area is sized and centered to cover the whole map.
+## The scatter area is sized and centered to cover the whole map.
 @export var ground_grid: GroundGrid
-## Used when no ground_grid is assigned.
-@export var area_size := Vector2(1000, 1000)
 ## Nothing is placed within this radius of this node (put it at the player spawn).
 @export var clearing_radius := 50.0
 ## If set, nothing is placed on or near the generated dirt path.
@@ -70,12 +68,12 @@ func generate() -> void:
 	else:
 		_rng.randomize()
 
-	_area = area_size
-	_area_center = Vector2(global_position.x, global_position.z)
-	if ground_grid:
-		_area = ground_grid.get_map_size()
-		var c := ground_grid.get_map_center()
-		_area_center = Vector2(c.x, c.z)
+	if ground_grid == null:
+		push_warning("Scatter: assign a ground_grid.")
+		return
+	_area = ground_grid.get_map_size()
+	var c := ground_grid.get_map_center()
+	_area_center = Vector2(c.x, c.z)
 
 	_info.clear()
 	for e in hard_objects:

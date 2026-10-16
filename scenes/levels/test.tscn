@@ -159,7 +159,6 @@ script = ExtResource("5_scatter")
 hard_objects = Array[ExtResource("6_0w447")]([SubResource("Resource_ff7wo"), SubResource("Resource_nrdrc"), SubResource("Resource_w0coa"), SubResource("Resource_6m38a"), SubResource("Resource_6rk7q"), SubResource("Resource_tbp23"), SubResource("Resource_uw1rg")])
 soft_objects = Array[ExtResource("6_0w447")]([SubResource("Resource_tmnu4"), SubResource("Resource_alm8k"), SubResource("Resource_llfq8"), SubResource("Resource_61o5v"), SubResource("Resource_8g8p0"), SubResource("Resource_goely")])
 ground_grid = NodePath("../Ground")
-area_size = Vector2(22, 22)
 clearing_radius = 10.0
 path_generator = NodePath("../PathGenerator")
 hard_coverage = 0.5

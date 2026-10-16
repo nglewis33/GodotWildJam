@@ -8,8 +8,6 @@ extends Node3D
 ## Don't rotate or scale this node.
 
 @export var ground_grid: GroundGrid
-## Used when no ground_grid is assigned (centered on this node).
-@export var area_size := Vector2(300, 300)
 
 @export_group("Path")
 ## How far the end point is from the start (clamped to stay inside the map).
@@ -88,7 +86,7 @@ func distance_to_path(p: Vector2) -> float:
 
 
 func get_end_position() -> Vector3:
-	var y := ground_grid.global_position.y if ground_grid else global_position.y
+	var y := ground_grid.global_position.y
 	return Vector3(end_position.x, y, end_position.y)
 
 
@@ -101,14 +99,13 @@ func generate() -> void:
 	_noise.seed = _rng.randi()
 	_noise.frequency = 0.35
 
-	var center := Vector2(global_position.x, global_position.z)
-	var size := area_size
-	var ground_y := global_position.y
-	if ground_grid:
-		var c := ground_grid.get_map_center()
-		center = Vector2(c.x, c.z)
-		size = ground_grid.get_map_size()
-		ground_y = ground_grid.global_position.y
+	if ground_grid == null:
+		push_warning("PathGenerator: assign a ground_grid.")
+		return
+	var c := ground_grid.get_map_center()
+	var center := Vector2(c.x, c.z)
+	var size := ground_grid.get_map_size()
+	var ground_y := ground_grid.global_position.y
 	if size.x <= 0.0 or size.y <= 0.0:
 		push_warning("PathGenerator: map size is zero (is the ground generated?).")
 		return
