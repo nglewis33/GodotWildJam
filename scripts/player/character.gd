@@ -179,6 +179,9 @@ func start_jump_cooldown() -> void:
 
 func _update_stamina(delta: float) -> void:
 	_sprinting = is_key(sprint_key) and is_moving() and not exhausted and stamina > 0.0
+	# Stamina is frozen for the whole jump (after its cost); it moves again on landing.
+	if current_state and current_state.name == "Jumping":
+		return
 	if _sprinting:
 		stamina = maxf(stamina - stamina_drain * delta, 0.0)
 		if stamina <= 0.0:
