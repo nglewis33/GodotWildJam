@@ -1,6 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://scripts/world/atmosphere.gd" id="1_atm"]
+[ext_resource type="Script" path="res://scripts/world/ground_mist.gd" id="2_mist"]
 
 [node name="Atmosphere" type="Node3D"]
 script = ExtResource("1_atm")
@@ -9,4 +10,5 @@ script = ExtResource("1_atm")
 
 [node name="Moon" type="DirectionalLight3D" parent="."]
 
-[node name="GroundFog" type="FogVolume" parent="."]
+[node name="GroundMist" type="Node3D" parent="."]
+script = ExtResource("2_mist")
