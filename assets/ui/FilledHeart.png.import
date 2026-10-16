@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c5woppdoe7ljn"
-path="res://.godot/imported/FilledHeart.png-472e5525ae0c116e9df653cec5d4099a.ctex"
+path="res://.godot/imported/FilledHeart.png-00b56f3ab3289272c4723f9c4ceefbc7.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/ui/FilledHeart.png"
-dest_files=["res://.godot/imported/FilledHeart.png-472e5525ae0c116e9df653cec5d4099a.ctex"]
+dest_files=["res://.godot/imported/FilledHeart.png-00b56f3ab3289272c4723f9c4ceefbc7.ctex"]
 
 [params]
 

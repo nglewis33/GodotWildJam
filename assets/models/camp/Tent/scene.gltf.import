@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://c7abbafebmwky"
-path="res://.godot/imported/scene.gltf-94029abd646b178a346e45ebd26d2b1b.scn"
+path="res://.godot/imported/scene.gltf-eb8ed841623e2bc78b97cd5065a4c9a3.scn"
 
 [deps]
 
 source_file="res://assets/models/camp/Tent/scene.gltf"
-dest_files=["res://.godot/imported/scene.gltf-94029abd646b178a346e45ebd26d2b1b.scn"]
+dest_files=["res://.godot/imported/scene.gltf-eb8ed841623e2bc78b97cd5065a4c9a3.scn"]
 
 [params]
 

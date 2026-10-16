@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://773i1m0exvs1"
-path.s3tc="res://.godot/imported/Tourist_stuff_metallicRoughness.png-89ae76d17cd5a47ad0e86b3963387521.s3tc.ctex"
+path.s3tc="res://.godot/imported/Tourist_stuff_metallicRoughness.png-757d90f480e7672e2eb37277d355d6c7.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -12,7 +12,7 @@ metadata={
 [deps]
 
 source_file="res://assets/models/camp/Tent/textures/Tourist_stuff_metallicRoughness.png"
-dest_files=["res://.godot/imported/Tourist_stuff_metallicRoughness.png-89ae76d17cd5a47ad0e86b3963387521.s3tc.ctex"]
+dest_files=["res://.godot/imported/Tourist_stuff_metallicRoughness.png-757d90f480e7672e2eb37277d355d6c7.s3tc.ctex"]
 
 [params]
 

@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bq7emij16j87c"
-path.s3tc="res://.godot/imported/PP_Standard_Material_metallicRoughness.png-960a48a41524462e0e77a9dd1d5431b8.s3tc.ctex"
+path.s3tc="res://.godot/imported/PP_Standard_Material_metallicRoughness.png-05c7940a67152cffa910017cb671023f.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -12,7 +12,7 @@ metadata={
 [deps]
 
 source_file="res://assets/forest/textures/PP_Standard_Material_metallicRoughness.png"
-dest_files=["res://.godot/imported/PP_Standard_Material_metallicRoughness.png-960a48a41524462e0e77a9dd1d5431b8.s3tc.ctex"]
+dest_files=["res://.godot/imported/PP_Standard_Material_metallicRoughness.png-05c7940a67152cffa910017cb671023f.s3tc.ctex"]
 
 [params]
 

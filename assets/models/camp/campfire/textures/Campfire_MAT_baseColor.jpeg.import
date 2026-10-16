@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dka7lnkd0gs4p"
-path.s3tc="res://.godot/imported/Campfire_MAT_baseColor.jpeg-7c164c95f9ecd788b886d33cfa7f7dce.s3tc.ctex"
+path.s3tc="res://.godot/imported/Campfire_MAT_baseColor.jpeg-f8d0557bd5450796d8ba57f504f3d491.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -12,7 +12,7 @@ metadata={
 [deps]
 
 source_file="res://assets/models/camp/campfire/textures/Campfire_MAT_baseColor.jpeg"
-dest_files=["res://.godot/imported/Campfire_MAT_baseColor.jpeg-7c164c95f9ecd788b886d33cfa7f7dce.s3tc.ctex"]
+dest_files=["res://.godot/imported/Campfire_MAT_baseColor.jpeg-f8d0557bd5450796d8ba57f504f3d491.s3tc.ctex"]
 
 [params]
 

@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b554qn0hpmmds"
-path.s3tc="res://.godot/imported/Tourist_stuff_normal.png-68ba6cdeec10113db43441e1127ec2ba.s3tc.ctex"
+path.s3tc="res://.godot/imported/Tourist_stuff_normal.png-6fb43dff3d5e585718899d101cf89505.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -12,7 +12,7 @@ metadata={
 [deps]
 
 source_file="res://assets/models/camp/Tent/textures/Tourist_stuff_normal.png"
-dest_files=["res://.godot/imported/Tourist_stuff_normal.png-68ba6cdeec10113db43441e1127ec2ba.s3tc.ctex"]
+dest_files=["res://.godot/imported/Tourist_stuff_normal.png-6fb43dff3d5e585718899d101cf89505.s3tc.ctex"]
 
 [params]
 

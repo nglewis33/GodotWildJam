@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bb1nrhq5qob70"
-path.s3tc="res://.godot/imported/Campfire_MAT_metallicRoughness.png-a4dfb4ca03640e39d91fef8e74ecb4b4.s3tc.ctex"
+path.s3tc="res://.godot/imported/Campfire_MAT_metallicRoughness.png-8ad82e017267512e081c1a7ba063a9e2.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -12,7 +12,7 @@ metadata={
 [deps]
 
 source_file="res://assets/models/camp/campfire/textures/Campfire_MAT_metallicRoughness.png"
-dest_files=["res://.godot/imported/Campfire_MAT_metallicRoughness.png-a4dfb4ca03640e39d91fef8e74ecb4b4.s3tc.ctex"]
+dest_files=["res://.godot/imported/Campfire_MAT_metallicRoughness.png-8ad82e017267512e081c1a7ba063a9e2.s3tc.ctex"]
 
 [params]
 
