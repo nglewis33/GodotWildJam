@@ -148,6 +148,10 @@ tile_overlap = 0.08
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.322942, 2.80186, 0.591608)
 air_move_speed = 4.5
 jump_cooldown = 3.0
+sprint_speed = 4.0
+air_sprint_speed = 4.5
+stamina_regen = 15.0
+stamina_exhausted_regen = 10.0
 
 [node name="FollowCamera" parent="." unique_id=1124731776 node_paths=PackedStringArray("target") instance=ExtResource("3_cam")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.322942, 0.48, 0.541608)
