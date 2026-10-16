@@ -96,13 +96,12 @@ func _run_cutscene(player: Node3D) -> void:
 	var cam_pos := center + front * view_distance + Vector3.UP * (view_height - 1.4) # view_height 1.4 = level with sign center
 	var target := Transform3D(Basis.IDENTITY, cam_pos).looking_at(center, Vector3.UP)
 	var origin := cam.global_transform
-	var meshes: Array = player.find_children("*", "GeometryInstance3D", true, false)
-	var base_t: float = (meshes[0] as GeometryInstance3D).transparency if not meshes.is_empty() else 0.0
+	var base_o := PlayerFade.get_opacity(player)
 	var shown := feature.text if feature else text
 
-	await _transition(cam, origin, target, meshes, base_t, 1.0)
+	await _transition(cam, origin, target, player, base_o, 0.0)
 	await _dialogue.show_text(shown)
-	await _transition(cam, target, origin, meshes, 1.0, base_t)
+	await _transition(cam, target, origin, player, 0.0, base_o)
 
 	get_tree().paused = false
 	_read = true
@@ -111,13 +110,12 @@ func _run_cutscene(player: Node3D) -> void:
 		feature.apply(get_tree().current_scene)
 
 
-func _transition(cam: Camera3D, from: Transform3D, to: Transform3D, meshes: Array, a0: float, a1: float) -> void:
+func _transition(cam: Camera3D, from: Transform3D, to: Transform3D, player: Node3D, a0: float, a1: float) -> void:
 	var tw := create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	tw.set_parallel(true)
 	tw.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tw.tween_method(func(t: float): cam.global_transform = from.interpolate_with(to, t), 0.0, 1.0, camera_time)
 	tw.tween_method(func(v: float):
-		for m in meshes:
-			if is_instance_valid(m):
-				m.transparency = v, a0, a1, fade_time)
+		if is_instance_valid(player):
+			PlayerFade.set_opacity(player, v), a0, a1, fade_time)
 	await tw.finished

@@ -9,5 +9,4 @@ func apply(world: Node) -> void:
 	var player := world.get_tree().get_first_node_in_group("player")
 	if player == null:
 		return
-	for m in player.find_children("*", "GeometryInstance3D", true, false):
-		(m as GeometryInstance3D).transparency = 1.0 - opacity
+	PlayerFade.set_opacity(player, opacity)
