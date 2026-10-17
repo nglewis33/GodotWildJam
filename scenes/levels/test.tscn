@@ -207,9 +207,10 @@ amount = 150
 drop_length = 0.3
 drop_alpha = 0.12
 
-[node name="PathGenerator" type="Node3D" parent="." unique_id=2047529965 node_paths=PackedStringArray("ground_grid")]
+[node name="PathGenerator" type="Node3D" parent="." unique_id=2047529965 node_paths=PackedStringArray("ground_grid", "ravine")]
 script = ExtResource("70_pathgen")
 ground_grid = NodePath("../Ground")
+ravine = NodePath("../Ravine")
 end_distance = 60.0
 curviness = 0.3
 fork_count = 5

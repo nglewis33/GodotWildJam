@@ -8,6 +8,8 @@ extends Node3D
 ## Don't rotate or scale this node.
 
 @export var ground_grid: GroundGrid
+## Optional: carved out of the map right after the main path exists, before the forks.
+@export var ravine: Ravine
 
 @export_group("Path")
 enum Quadrant { RANDOM, NW, NE, SW, SE }
@@ -107,7 +109,6 @@ signal generated
 var start_position := Vector2.ZERO
 var checkpoints: Array[Vector2] = []
 var end_position := Vector2.ZERO
-var fork_routes: Array = [] ## Fork polylines (PackedVector2Array each).
 var main_route := PackedVector2Array() ## Polyline of the main path (start to end), without forks.
 var _segments: Array = [] # [Vector2 a, Vector2 b, float radius]
 var _hash := {}
@@ -179,6 +180,9 @@ func generate() -> void:
 
 	var main_pts := _plan_route(center, size, inner)
 	main_route = main_pts
+	# The ravine is carved now, before any forks exist, so forks can steer clear of it.
+	if ravine:
+		ravine.carve()
 	var polylines: Array = [{"pts": main_pts, "width": path_width}]
 	var origins: Array[Vector2] = []
 	for i in fork_count:
@@ -186,9 +190,6 @@ func generate() -> void:
 		if not f.is_empty():
 			polylines.append(f)
 
-	fork_routes.clear()
-	for pi in range(1, polylines.size()):
-		fork_routes.append(polylines[pi].pts)
 	for pl in polylines:
 		var pts: PackedVector2Array = pl.pts
 		for i in pts.size() - 1:
@@ -448,6 +449,8 @@ func _make_fork(polylines: Array, origins: Array[Vector2], inner: Rect2) -> Dict
 			continue
 		if origin.distance_to(start_position) < start_radius * 0.8:
 			continue
+		if ravine and ravine.blocks(origin, fork_clearance + 4.0):
+			continue
 		var ok := true
 		for o in origins:
 			if origin.distance_to(o) < spacing:
@@ -482,6 +485,8 @@ func _make_fork(polylines: Array, origins: Array[Vector2], inner: Rect2) -> Dict
 			heading = dir.angle()
 			var nxt := pos + dir * STEP
 			if not inner.has_point(nxt) or nxt.distance_to(end_position) < end_clearance:
+				break
+			if ravine and ravine.blocks(nxt, fork_clearance + 4.0):
 				break
 			var p2: Array = _path_probe(nxt, polylines, c[0], c[1])
 			var p2_dist: float = p2[0]

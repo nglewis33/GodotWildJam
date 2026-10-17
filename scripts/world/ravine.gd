@@ -8,7 +8,9 @@ extends Node3D
 ## generated ground and cliff walls with ledges that fade to black. A
 ## SuspensionBridge child spans the gap (it is created if missing).
 ## The band never reaches the edge of the map, so you can also walk around it.
-## Put this node after the PathGenerator in the scene tree.
+## The PathGenerator's "ravine" export should point at this node; the ravine is
+## carved right after the main path is planned and before the forks, so the forks
+## simply avoid it and the main path only has to cross it once.
 
 signal carved ## Tiles are removed (Scatter and others can now avoid the hole).
 signal built ## Walls and bridge exist.
@@ -28,8 +30,6 @@ signal built ## Walls and bridge exist.
 @export var width := 30.0
 ## Tiles kept solid between the ravine and the map edge, so it never cuts the map in two.
 @export var edge_margin_tiles := 2
-## Try to keep fork paths out of the ravine (they would dead-end at the cliff).
-@export var avoid_forks := true
 ## 0 = different every run.
 @export var seed_value := 0
 
@@ -80,10 +80,9 @@ func _ready() -> void:
 		return
 	if path_generator.main_route.size() < 2:
 		await path_generator.generated
-	if not _carve():
+	if not carve():
 		push_warning("Ravine: could not find a spot for the ravine.")
 		return
-	carved.emit()
 	# Wait for the remaining ground's collision to register before measuring it.
 	for i in 3:
 		await get_tree().physics_frame
@@ -111,7 +110,13 @@ func blocks(p: Vector2, margin := 0.0) -> bool:
 
 # --- Finding a spot and removing the tiles -------------------------------------
 
-func _carve() -> bool:
+## Removes the ground tiles (once). Called by the PathGenerator right after the
+## main path exists, or by this node's own _ready if nothing did it yet.
+func carve() -> bool:
+	if hole.size != Vector2.ZERO:
+		return true
+	if path_generator == null or ground_grid == null or path_generator.main_route.size() < 2:
+		return false
 	if seed_value != 0:
 		_rng.seed = seed_value
 	else:
@@ -127,16 +132,15 @@ func _carve() -> bool:
 		if base - k * 3.0 >= 8.0:
 			fracs.append(base - k * 3.0)
 		k += 1
-	var passes: Array[bool] = [true, false] if avoid_forks else [false]
-	for strict in passes:
-		for f in fracs:
-			if _try_place(route, f / 100.0, strict):
-				print("Ravine: hole %s at %.0f%% of the main path%s." % [hole, f, "" if strict or not avoid_forks else " (a fork may run into it)"])
-				return true
+	for f in fracs:
+		if _try_place(route, f / 100.0):
+			print("Ravine: hole %s at %.0f%% of the main path." % [hole, f])
+			carved.emit()
+			return true
 	return false
 
 
-func _try_place(route: PackedVector2Array, frac: float, strict: bool) -> bool:
+func _try_place(route: PackedVector2Array, frac: float) -> bool:
 	var at := _route_at(route, frac)
 	var pos: Vector2 = at[0]
 	var dir: Vector2 = at[1]
@@ -167,7 +171,7 @@ func _try_place(route: PackedVector2Array, frac: float, strict: bool) -> bool:
 		var c0 := Vector2i(a_lo, l_lo) if _long_along_z else Vector2i(l_lo, a_lo)
 		var c1 := Vector2i(a_hi, l_hi) if _long_along_z else Vector2i(l_hi, a_hi)
 		var rect := _cells_to_rect(c0, c1)
-		if _rect_ok(route, rect, strict):
+		if _rect_ok(route, rect):
 			ground_grid.remove_cells(c0, c1)
 			hole = rect
 			_path_pos = pos
@@ -185,21 +189,12 @@ func _cells_to_rect(c0: Vector2i, c1: Vector2i) -> Rect2:
 	return Rect2(lo + trim, hi - lo - trim * 2.0)
 
 
-## The main path must cross the hole exactly once; camp, finish (and forks, if strict) stay clear.
-func _rect_ok(route: PackedVector2Array, rect: Rect2, strict: bool) -> bool:
+## The main path must cross the hole exactly once; the camp and finish stay clear.
+func _rect_ok(route: PackedVector2Array, rect: Rect2) -> bool:
 	if rect.grow(path_generator.start_radius + 6.0).has_point(path_generator.start_position):
 		return false
 	if rect.grow(path_generator.end_radius + 6.0).has_point(path_generator.end_position):
 		return false
-	if strict:
-		var wide := rect.grow(6.0)
-		for f in path_generator.fork_routes:
-			var pts: PackedVector2Array = f
-			for i in pts.size() - 1:
-				var steps := maxi(1, ceili(pts[i].distance_to(pts[i + 1]) / 2.0))
-				for k in steps + 1:
-					if wide.has_point(pts[i].lerp(pts[i + 1], float(k) / steps)):
-						return false
 	var crossings := 0
 	var inside := false
 	for i in route.size() - 1:
