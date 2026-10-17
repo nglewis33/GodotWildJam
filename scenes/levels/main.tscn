@@ -1,11 +1,9 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://biw8we5onqwpo"]
 
 [ext_resource type="PackedScene" uid="uid://00nacha8ji6g" path="res://assets/forest/extracted/PP_Meadow.tscn" id="1_nx1gn"]
 [ext_resource type="PackedScene" uid="uid://fq8tny6kq1j6" path="res://scenes/player/Player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://scenes/player/Camera.tscn" id="3_cam"]
 [ext_resource type="Script" uid="uid://cwohh43x4he0k" path="res://scripts/world/ground_grid.gd" id="4_ground"]
-[ext_resource type="Script" path="res://scripts/world/ravine.gd" id="80_ravine"]
-[ext_resource type="Script" path="res://scripts/world/suspension_bridge.gd" id="81_bridge"]
 [ext_resource type="Script" uid="uid://cep0s6eo5vnwf" path="res://scripts/world/scatter.gd" id="5_scatter"]
 [ext_resource type="Script" uid="uid://br1vmthe2o2yj" path="res://scripts/world/scatter_entry.gd" id="6_0w447"]
 [ext_resource type="PackedScene" uid="uid://cqtdve2jriri5" path="res://assets/forest/extracted/PP_Birch_Tree.tscn" id="7_s3ppv"]
@@ -22,15 +20,14 @@
 [ext_resource type="PackedScene" uid="uid://csskn2u5mc70d" path="res://assets/forest/extracted/PP_Mushroom_Fantasy_Purple.tscn" id="18_61o5v"]
 [ext_resource type="PackedScene" uid="uid://upj13suqhu7n" path="res://assets/forest/extracted/PP_Sunflower.tscn" id="19_8g8p0"]
 [ext_resource type="PackedScene" path="res://scenes/world/Atmosphere.tscn" id="30_atm"]
-[ext_resource type="PackedScene" path="res://scenes/world/Rain.tscn" id="35_7arqs"]
 [ext_resource type="Script" uid="uid://mogk6u5dlkmb" path="res://scripts/audio/ambience.gd" id="40_amb"]
 [ext_resource type="Script" uid="uid://c4qtlkgdjuqmp" path="res://scripts/audio/ambience_entry.gd" id="41_ambentry"]
-[ext_resource type="AudioStream" path="res://assets/audio/ambience/dragon-studio-cicada-buzzing-331499.ogg" id="42_cicada"]
-[ext_resource type="AudioStream" path="res://assets/audio/ambience/dragon-studio-frog-croaking-sound-effect-322956.ogg" id="42_frog"]
-[ext_resource type="AudioStream" path="res://assets/audio/ambience/freesound_community-tawny-owl-in-molkom-sweden-99897.ogg" id="42_owl"]
-[ext_resource type="AudioStream" path="res://assets/audio/ambience/dragon-studio-harsh-wind-515272.ogg" id="42_wind"]
-[ext_resource type="AudioStream" path="res://assets/audio/ambience/dragon-studio-howling-wolves-515977.ogg" id="42_wolves"]
-[ext_resource type="AudioStream" path="res://assets/audio/music/syouki_takahashi-midnight-forest-184304.ogg" id="50_music"]
+[ext_resource type="AudioStream" uid="uid://dd5h2usxkbrko" path="res://assets/audio/ambience/dragon-studio-cicada-buzzing-331499.ogg" id="42_cicada"]
+[ext_resource type="AudioStream" uid="uid://bu3xqb0t70mkl" path="res://assets/audio/ambience/dragon-studio-frog-croaking-sound-effect-322956.ogg" id="42_frog"]
+[ext_resource type="AudioStream" uid="uid://fhi7wff5ey6h" path="res://assets/audio/ambience/freesound_community-tawny-owl-in-molkom-sweden-99897.ogg" id="42_owl"]
+[ext_resource type="AudioStream" uid="uid://cjha4n1dklwm6" path="res://assets/audio/ambience/dragon-studio-harsh-wind-515272.ogg" id="42_wind"]
+[ext_resource type="AudioStream" uid="uid://cxg6aca3km1w3" path="res://assets/audio/ambience/dragon-studio-howling-wolves-515977.ogg" id="42_wolves"]
+[ext_resource type="AudioStream" uid="uid://chilj4wwi7aeu" path="res://assets/audio/music/syouki_takahashi-midnight-forest-184304.ogg" id="50_music"]
 [ext_resource type="Script" uid="uid://c4wamgqw84fwd" path="res://scripts/audio/music.gd" id="51_musicscript"]
 [ext_resource type="PackedScene" path="res://scenes/ui/PauseMenu.tscn" id="52_pause"]
 [ext_resource type="Script" uid="uid://dfsdmammnxjt7" path="res://scripts/world/path_generator.gd" id="70_pathgen"]
@@ -40,11 +37,13 @@
 [ext_resource type="PackedScene" uid="uid://dt0cec400rsmw" path="res://scenes/camp/Log.tscn" id="74_log"]
 [ext_resource type="PackedScene" path="res://scenes/npc/NPC.tscn" id="75_npc"]
 [ext_resource type="Script" uid="uid://vth086a3vtir" path="res://scripts/ui/minimap.gd" id="80_minimap"]
+[ext_resource type="Script" uid="uid://yg2dr64krjm" path="res://scripts/world/ravine.gd" id="80_ravine"]
+[ext_resource type="Script" uid="uid://dwv8mv45vf13" path="res://scripts/world/suspension_bridge.gd" id="81_bridge"]
+[ext_resource type="Script" uid="uid://w0ogq7ild6qe" path="res://scripts/story/prologue.gd" id="90_prologue"]
+[ext_resource type="Script" uid="uid://dfat1rivvw0nk" path="res://scripts/story/start_sign_feature.gd" id="91_signfeat"]
+[ext_resource type="Script" uid="uid://dknynho8iifvt" path="res://scripts/signs/sign_spawner.gd" id="92_spawner"]
+[ext_resource type="PackedScene" uid="uid://bgs1sgv721ooy" path="res://scenes/signs/post_sign.tscn" id="93_sign"]
 
-[ext_resource type="Script" path="res://scripts/story/prologue.gd" id="90_prologue"]
-[ext_resource type="Script" path="res://scripts/story/start_sign_feature.gd" id="91_signfeat"]
-[ext_resource type="Script" path="res://scripts/signs/sign_spawner.gd" id="92_spawner"]
-[ext_resource type="PackedScene" path="res://scenes/signs/post_sign.tscn" id="93_sign"]
 [sub_resource type="Resource" id="Resource_ff7wo"]
 script = ExtResource("6_0w447")
 scene = ExtResource("7_s3ppv")
@@ -141,7 +140,7 @@ volume_db = -11.0
 script = ExtResource("91_signfeat")
 text = "A light fog surrounds you. You cannot see far, but you can see enough. You gain the confidence to walk the path"
 
-[node name="Main" type="Node3D"]
+[node name="Main" type="Node3D" unique_id=1489013023]
 
 [node name="Ground" type="Node3D" parent="." unique_id=56242669]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.326929, 0.375889, 0.58842)
@@ -200,7 +199,6 @@ start_delay = 2.0
 
 [node name="PauseMenu" parent="." unique_id=2028114063 instance=ExtResource("52_pause")]
 
-
 [node name="PathGenerator" type="Node3D" parent="." unique_id=2047529965 node_paths=PackedStringArray("ground_grid", "ravine")]
 script = ExtResource("70_pathgen")
 ground_grid = NodePath("../Ground")
@@ -215,13 +213,13 @@ start_radius = 8.0
 end_radius = 8.0
 path_color = Color(0.48970687, 0.33671996, 0.20198193, 1)
 
-[node name="Ravine" type="Node3D" parent="." node_paths=PackedStringArray("ground_grid", "path_generator")]
+[node name="Ravine" type="Node3D" parent="." unique_id=255145428 node_paths=PackedStringArray("ground_grid", "path_generator")]
 script = ExtResource("80_ravine")
-position_percent = 70.0
 ground_grid = NodePath("../Ground")
 path_generator = NodePath("../PathGenerator")
+position_percent = 70.0
 
-[node name="Bridge" type="Node3D" parent="Ravine"]
+[node name="Bridge" type="Node3D" parent="Ravine" unique_id=1229655580]
 script = ExtResource("81_bridge")
 
 [node name="CampSite" type="Node" parent="." unique_id=1648144078 node_paths=PackedStringArray("path_generator")]
@@ -239,20 +237,19 @@ script = ExtResource("80_minimap")
 ground_grid = NodePath("../Ground")
 path_generator = NodePath("../PathGenerator")
 ravine = NodePath("../Ravine")
-reveal_all = false
 
-[node name="SignSpawner" type="Node" parent="."]
+[node name="SignSpawner" type="Node" parent="." unique_id=504304755]
 script = ExtResource("92_spawner")
 sign_scene = ExtResource("93_sign")
 auto_spawn = false
 
-[node name="Prologue" type="Node" parent="." node_paths=PackedStringArray("camp", "player", "camera", "atmosphere", "scatter", "sign_spawner", "minimap")]
+[node name="Prologue" type="Node" parent="." unique_id=218706630 node_paths=PackedStringArray("camp", "player", "camera", "atmosphere", "scatter", "sign_spawner", "minimap")]
 script = ExtResource("90_prologue")
+sign_feature = SubResource("StartSign")
 camp = NodePath("../CampSite")
 player = NodePath("../Player")
 camera = NodePath("../FollowCamera")
 atmosphere = NodePath("../Atmosphere")
 scatter = NodePath("../Scatter")
 sign_spawner = NodePath("../SignSpawner")
-sign_feature = SubResource("StartSign")
 minimap = NodePath("../Minimap")
