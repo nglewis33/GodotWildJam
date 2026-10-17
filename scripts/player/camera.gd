@@ -10,6 +10,12 @@ extends Camera3D
 @export var offset := Vector3(0, 2, -2)
 @export var look_height := 1.0
 @export var smoothing := 8.0
+## Up/down follow is a damped spring: it speeds up and slows down smoothly, and
+## sudden height changes (steps, landing, small drops) don't snap the camera.
+## Bigger = lazier. 0 = follow height exactly like before.
+@export var vertical_smooth_time := 0.35
+## The camera's focus never trails the player's height by more than this (falls).
+@export var max_vertical_lag := 2.5
 ## Radians per pixel of vertical mouse movement.
 @export var pitch_sensitivity := 0.003
 @export var min_follow_pitch := -0.4
@@ -25,6 +31,9 @@ var free_mode := false
 var _yaw := 0.0
 var _pitch := 0.0
 var _follow_pitch := 0.0
+var _focus_y := 0.0
+var _focus_vy := 0.0
+var _focus_ready := false
 
 
 func _ready() -> void:
@@ -57,10 +66,30 @@ func _process(delta: float) -> void:
 func _process_follow(delta: float) -> void:
 	if target == null:
 		return
+	var focus := target.global_transform
+	focus.origin.y = _smooth_focus_y(target.global_position.y, delta)
 	var tilted := Basis(Vector3.RIGHT, _follow_pitch) * offset
-	var desired := target.global_transform * tilted
+	var desired := focus * tilted
 	global_position = global_position.lerp(desired, 1.0 - exp(-smoothing * delta))
-	look_at(target.global_position + Vector3.UP * look_height)
+	look_at(focus.origin + Vector3.UP * look_height)
+
+
+## Critically damped spring toward the target's height (no overshoot).
+func _smooth_focus_y(goal: float, delta: float) -> float:
+	if not _focus_ready or vertical_smooth_time <= 0.0 or absf(_focus_y - goal) > 40.0:
+		_focus_y = goal # first frame, smoothing off, or a teleport/respawn: snap
+		_focus_vy = 0.0
+		_focus_ready = true
+		return _focus_y
+	var omega := 2.0 / vertical_smooth_time
+	var x := omega * delta
+	var damp := 1.0 / (1.0 + x + 0.48 * x * x + 0.235 * x * x * x)
+	var change := _focus_y - goal
+	var temp := (_focus_vy + omega * change) * delta
+	_focus_vy = (_focus_vy - omega * temp) * damp
+	_focus_y = goal + (change + temp) * damp
+	_focus_y = clampf(_focus_y, goal - max_vertical_lag, goal + max_vertical_lag)
+	return _focus_y
 
 
 func _process_free(delta: float) -> void:
