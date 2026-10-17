@@ -71,6 +71,9 @@ var stamina := 200.0
 var exhausted := false
 ## Dev option: stamina never goes down (set from the pause menu's Dev Controls).
 var infinite_stamina := false
+## How high a ledge the player walks straight up without jumping. 0 = off.
+## World zones (like the bridge) switch this on while you are inside them.
+var step_up_height := 0.0
 var _sprinting := false
 @onready var anim: AnimationPlayer = find_child("AnimationPlayer", true, false)
 
@@ -116,11 +119,40 @@ func _physics_process(delta: float) -> void:
 	if next != "":
 		_change_state(next)
 
+	_try_step_up(delta)
 	move_and_slide()
 
 	if global_position.y < _spawn_position.y - fall_limit:
 		global_position = _spawn_position
 		velocity = Vector3.ZERO
+
+
+## If walking into a low ledge (up to step_up_height), lift the body onto it.
+func _try_step_up(delta: float) -> void:
+	if step_up_height <= 0.0 or not is_on_floor():
+		return
+	var flat := Vector3(velocity.x, 0.0, velocity.z) * delta
+	if flat.length() < 0.0001:
+		return
+	var motion := flat.normalized() * maxf(flat.length(), 0.1)
+	var hit := KinematicCollision3D.new()
+	if not test_move(global_transform, motion, hit):
+		return # nothing in the way
+	if hit.get_normal().y > 0.5:
+		return # a gentle slope: move_and_slide already climbs those
+	var up := Vector3.UP * step_up_height
+	if test_move(global_transform, up):
+		return # head would hit something
+	var raised := global_transform.translated(up)
+	if test_move(raised, motion):
+		return # still blocked up there: the ledge is too tall
+	# How far down is the top of the ledge, just past its edge?
+	var down := KinematicCollision3D.new()
+	if not test_move(raised.translated(motion), Vector3.DOWN * (step_up_height + 0.05), down):
+		return # nothing to stand on
+	var rise := step_up_height + down.get_travel().y # travel.y is negative
+	if rise > 0.01:
+		global_position.y += rise + 0.01
 
 
 ## Turn toward the queued mouse turning, no faster than max_turn_speed.

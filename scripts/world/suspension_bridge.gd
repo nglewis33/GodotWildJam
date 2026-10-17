@@ -16,6 +16,9 @@ extends Node3D
 @export var end_lift := 1.0
 @export var step_count := 2
 @export var step_depth := 1.0 ## Length of each step along the bridge.
+## Near the bridge (steps and deck) the player walks up ledges this high without
+## jumping. Keep it a bit above one step. 0 turns this off.
+@export var step_assist_height := 0.5
 ## Random per-plank nudges so it looks hand-built.
 @export var plank_jitter := 1.0
 
@@ -218,6 +221,27 @@ func build(a: Vector3, b: Vector3) -> void:
 		sc.position = sb.get_center()
 		body.add_child(sc)
 	add_child(body)
+
+	# A zone around the bridge that lets the player step up onto the stairs.
+	if step_assist_height > 0.0:
+		var zone := Area3D.new()
+		zone.name = "StepAssistZone"
+		zone.collision_layer = 0
+		zone.collision_mask = 1
+		var zshape := CollisionShape3D.new()
+		var zbox := BoxShape3D.new()
+		zbox.size = Vector3(deck_width + 3.0, 8.0, length + 2.0 * (get_approach_length() + 1.5))
+		zshape.shape = zbox
+		zshape.position = Vector3(0.0, (ga + gb) * 0.5 + 1.5, 0.0)
+		zone.add_child(zshape)
+		zone.body_entered.connect(_on_zone_body.bind(true))
+		zone.body_exited.connect(_on_zone_body.bind(false))
+		add_child(zone)
+
+
+func _on_zone_body(body: Node3D, entered: bool) -> void:
+	if body.is_in_group("player") and "step_up_height" in body:
+		body.set("step_up_height", step_assist_height if entered else 0.0)
 
 
 func _add_multimesh(node_name: String, xforms: Array[Transform3D], mat: Material) -> void:
