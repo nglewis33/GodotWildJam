@@ -47,10 +47,12 @@ signal part_finished
 ## How far further along the path it looks, and how high the camera is above the ground.
 @export var path_look_ahead := 25.0
 @export var path_view_height := 1.2
+@export var path_look_height := 0.6
 ## How far in front of the sign the camera stands to look at it.
 @export var sign_view_distance := 2.4
-## Camera height above the sign's base.
+## Camera height above the ground, and the height it aims at (lower = looks further down).
 @export var sign_view_height := 1.1
+@export var sign_look_height := 1.1
 
 @export_group("Dialogue")
 @export_multiline var line_greeting := "Thank the heavens! Someone else is here to share in my misery. I have been lost in these woods for quite an age..."
@@ -237,7 +239,7 @@ func _path_view() -> Array:
 	var a := _route_point(path_view_distance)
 	var b := _route_point(path_view_distance + path_look_ahead)
 	return [Vector3(a.x, camp.ground_height(a, 0.0) + path_view_height, a.y),
-			Vector3(b.x, camp.ground_height(b, 0.0) + 0.6, b.y)]
+			Vector3(b.x, camp.ground_height(b, 0.0) + path_look_height, b.y)]
 
 
 ## A point on the real (curving) main path, this far along from its start.
@@ -256,10 +258,11 @@ func _route_point(dist: float) -> Vector2:
 
 ## Camera spot (in front of the sign) and look-at point for reading it.
 func _sign_view() -> Array:
-	var center := _sign.global_position + Vector3.UP * 1.0
+	var sp := _sign.global_position
+	var ground := camp.ground_height(Vector2(sp.x, sp.z), sp.y)
 	var front := Vector3(-camp.out_direction.x, 0.0, -camp.out_direction.y)
-	var base := _sign.global_position.y
-	return [Vector3(center.x, base + sign_view_height, center.z) + front * sign_view_distance, center]
+	var look := Vector3(sp.x, ground + sign_look_height, sp.z)
+	return [Vector3(sp.x, ground + sign_view_height, sp.z) + front * sign_view_distance, look]
 
 
 func _place_first_sign() -> void:
