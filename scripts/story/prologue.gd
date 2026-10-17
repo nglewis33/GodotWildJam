@@ -23,6 +23,12 @@ signal part_finished
 @export var camp_density := 0.12
 @export var dark_color := Color(0, 0, 0)
 
+@export_group("Start")
+## Off: you begin at the camp with the stranger in front of you and press E to talk.
+## On: you begin in pitch blackness and loop back to camp first.
+@export var start_with_dark_walk := false
+@export var talk_distance := 4.0
+
 @export_group("Loop")
 ## Leave this radius around the fire in the dark and you wake up at camp again.
 @export var loop_radius := 14.0
@@ -50,6 +56,7 @@ var _flashlight: Node
 var _looped := false
 var _in_dark := false
 var _dark_time := 0.0
+var _waiting_for_talk := false
 var _waiting_for_sign := false
 
 
@@ -92,8 +99,20 @@ func _begin() -> void:
 		await camp.built
 	if _flashlight:
 		_flashlight.call("set_locked", true)
-	# Darkness: nothing visible, nothing solid but the ground.
+	# Nothing but the camp is visible, and nothing is solid but the ground.
 	_set_world_hidden(true)
+	if not start_with_dark_walk:
+		_set_node_shown(minimap, false)
+		atmosphere.set_fog(camp_density, dark_color)
+		atmosphere.set_mist_visible(false)
+		_looped = true
+		_place_player_by_log()
+		camera.snap_to_target()
+		await _fade_to(0.0, 2.0)
+		_waiting_for_talk = true
+		_hint.text = "Press E to talk"
+		_hint.modulate.a = 1.0
+		return
 	_set_camp_shown(false)
 	atmosphere.set_fog(dark_density, dark_color)
 	atmosphere.set_mist_visible(false)
@@ -112,6 +131,19 @@ func _process(delta: float) -> void:
 		print("Prologue: looping back to camp")
 		_looped = true
 		_loop_back()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not _waiting_for_talk or get_tree().paused:
+		return
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_E:
+		var d := player.global_position - camp.npc.global_position
+		d.y = 0.0
+		if d.length() <= talk_distance:
+			_waiting_for_talk = false
+			_hint.modulate.a = 0.0
+			get_viewport().set_input_as_handled()
+			_stranger_scene()
 
 
 func _loop_back() -> void:
@@ -142,6 +174,7 @@ func _place_player_by_log() -> void:
 
 func _stranger_scene() -> void:
 	var npc := camp.npc
+	_set_player_input(false)
 	npc.auto_talk = false
 	npc.set_talking(true)
 	await _dialogue.show_text(line_greeting)
