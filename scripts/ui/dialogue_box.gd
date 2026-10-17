@@ -13,6 +13,10 @@ var _panel: PanelContainer
 var _progress := 0.0
 var _total := 0
 var _active := false
+var _choices: Array = []
+var _choice_index := 0
+var _choosing := false
+var _picked := -1
 
 
 func _init() -> void:
@@ -41,6 +45,30 @@ func _init() -> void:
 	visible = false
 
 
+## Shows the prompt, then a list of options (W/S or Up/Down, Enter to pick).
+## Returns the index of the chosen option.
+func ask(prompt: String, options: Array) -> int:
+	_choices = options
+	_choice_index = 0
+	_choosing = true
+	_picked = -1
+	_label.text = prompt
+	_total = prompt.length()
+	_progress = 0.0
+	_label.visible_characters = 0
+	_active = true
+	visible = true
+	await closed
+	return _picked
+
+
+func _choice_text() -> String:
+	var lines := _label.text.split("\n\n")[0] + "\n\n"
+	for i in _choices.size():
+		lines += ("> " if i == _choice_index else "   ") + str(_choices[i]) + "\n"
+	return lines
+
+
 ## Shows the text and returns when the player closes the box.
 func show_text(text: String) -> void:
 	_label.text = text
@@ -60,12 +88,26 @@ func _process(delta: float) -> void:
 		speed *= fast_multiplier
 	_progress = minf(_progress + speed * delta, _total)
 	_label.visible_characters = int(_progress)
+	if _choosing and _progress >= _total:
+		_label.text = _choice_text()
+		_label.visible_characters = -1
 
 
 func _input(event: InputEvent) -> void:
 	if not _active or not (event is InputEventKey) or not event.pressed or event.echo:
 		return
 	var k: int = event.keycode
+	if _choosing and _progress >= _total:
+		if k == KEY_UP or k == KEY_W:
+			_choice_index = (_choice_index - 1 + _choices.size()) % _choices.size()
+			_label.text = _choice_text()
+			get_viewport().set_input_as_handled()
+			return
+		if k == KEY_DOWN or k == KEY_S:
+			_choice_index = (_choice_index + 1) % _choices.size()
+			_label.text = _choice_text()
+			get_viewport().set_input_as_handled()
+			return
 	var is_enter := k == KEY_ENTER or k == KEY_KP_ENTER
 	var is_esc := k == KEY_ESCAPE
 	if not (is_enter or is_esc):
@@ -74,8 +116,15 @@ func _input(event: InputEvent) -> void:
 	if _progress < _total:
 		if is_enter:
 			_progress = _total
+			if _choosing:
+				_label.text = _choice_text()
 			_label.visible_characters = -1
 		return
+	if _choosing:
+		if not is_enter:
+			return
+		_picked = _choice_index
+		_choosing = false
 	_active = false
 	visible = false
 	closed.emit()

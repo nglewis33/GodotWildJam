@@ -15,6 +15,8 @@ extends Node
 @export var camera_time := 1.2
 @export var fade_time := 0.8
 
+signal finished ## After the sign was read and the game has unfrozen.
+
 var _timer := 0.0
 var _busy := false
 var _read := false
@@ -101,13 +103,16 @@ func _run_cutscene(player: Node3D) -> void:
 
 	await _transition(cam, origin, target, player, base_o, 0.0)
 	await _dialogue.show_text(shown)
-	await _transition(cam, target, origin, player, 0.0, base_o)
+	if feature:
+		await feature.after_message(get_tree().current_scene, cam, player)
+	await _transition(cam, cam.global_transform, origin, player, PlayerFade.get_opacity(player), base_o)
 
 	get_tree().paused = false
 	_read = true
 	_busy = false
 	if feature:
 		feature.apply(get_tree().current_scene)
+	finished.emit()
 
 
 func _transition(cam: Camera3D, from: Transform3D, to: Transform3D, player: Node3D, a0: float, a1: float) -> void:

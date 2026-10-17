@@ -1,4 +1,5 @@
 @tool
+class_name NightAtmosphere
 extends Node3D
 ## Night atmosphere: dark sky and ambient light, moonlight, distance fog and
 ## cheap low mist (a few drifting see-through layers around the player).
@@ -40,8 +41,37 @@ extends Node3D
 @export var mist_size := 140.0
 
 
+var _env: Environment
+
+
 func _ready() -> void:
 	apply()
+
+
+## Story hook: overrides the fog (thicker = shorter sight). Color is optional.
+func set_fog(density: float, color := Color(-1, 0, 0)) -> void:
+	if _env == null:
+		return
+	_env.fog_enabled = true
+	_env.fog_density = density
+	if color.r >= 0.0:
+		_env.fog_light_color = color
+
+
+func get_fog_density() -> float:
+	return _env.fog_density if _env else fog_density
+
+
+## Back to the fog set in the exports.
+func restore_fog() -> void:
+	set_fog(fog_density, fog_color)
+
+
+## Show or hide the drifting ground mist.
+func set_mist_visible(on: bool) -> void:
+	var mist := get_node_or_null("GroundMist") as Node3D
+	if mist and not Engine.is_editor_hint():
+		mist.visible = on and mist_enabled
 
 
 func apply() -> void:
@@ -70,6 +100,7 @@ func _apply_environment() -> void:
 	env.fog_density = fog_density
 	env.fog_sky_affect = 1.0
 	we.environment = env
+	_env = env
 
 
 func _apply_moon() -> void:

@@ -1,0 +1,259 @@
+class_name Prologue
+extends Node
+## Story part 1: the dark loop, the stranger at the camp, the flashlight, the
+## first sign, the fog lifting, and the offer to work together.
+## Scene wiring is done with the exports; the text is below.
+
+signal part_finished
+
+@export var camp: CampSite
+@export var player: Node3D
+@export var camera: FollowCamera
+@export var atmosphere: NightAtmosphere
+@export var scatter: ForestScatter
+@export var sign_spawner: SignSpawner
+@export var sign_feature: SignFeature
+## Hidden until the fog lifts.
+@export var minimap: CanvasLayer
+
+@export_group("Fog")
+## Pitch blackness at the start (higher = shorter sight).
+@export var dark_density := 1.6
+## Light fog around the camp once you loop back (enough to see the stranger).
+@export var camp_density := 0.35
+@export var dark_color := Color(0, 0, 0)
+
+@export_group("Loop")
+## Leave this radius around the fire in the dark and you wake up at camp again.
+@export var loop_radius := 14.0
+@export var fade_time := 1.2
+
+@export_group("Sign")
+## Where the first sign stands: distance from the fire toward the path, and sideways.
+@export var sign_distance := 5.5
+@export var sign_side := 2.5
+
+@export_group("Dialogue")
+@export_multiline var line_greeting := "Thank the heavens! Someone else is here to share in my misery. I have been lost in these woods for quite an age..."
+@export_multiline var line_path := "You see that path? Whenever I try to follow the path, something nefarious always stops me from continuing, and I must return to this here camp"
+@export_multiline var line_sign := "You see that sign? Those signs are littered across the forest. If you shine a flashlight on it, a truth of the forest will appear. Funny thing, the truth... Before you read the sign, its words are a lie. You don't believe me, do you? Here, take this flashlight and shine in on that there sign"
+@export_multiline var line_after := "The sign wants you to walk the path. But, you see, the path is too dangerous. Things are out to get me. So, I tried going through the woods, and found more signs. These signs held strange texts... strange truths. Eventually, the signs started threatening me. Telling me to get back on the path, or else. If I ignore them for too long, I find myself back at the main camp. What a pain! But, now that your here. We can try something new. I'll stay on the path, so that the signs are satisfied. But, I need the truths of the signs to survive. So I want you to explore the forest, find new signs, read them, and gather their powers. I don't know if this will work, but if so, we may both survive these woods. So what do you say, partner? Should we work together on this?"
+@export var answers: Array[String] = ["Yes", "Yes"]
+
+var _dialogue: DialogueBox
+var _fade: ColorRect
+var _hint: Label
+var _sign: Node3D
+var _flashlight: Node
+var _looped := false
+var _in_dark := false
+var _waiting_for_sign := false
+
+
+func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS # keeps running during the sign cutscene's pause
+	_dialogue = DialogueBox.new()
+	add_child(_dialogue)
+	_build_overlay()
+	if camp == null or player == null or camera == null:
+		push_warning("Prologue: needs camp, player and camera.")
+		return
+	_flashlight = player.get_node_or_null("Flashlight")
+	_begin()
+
+
+func _build_overlay() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 90
+	add_child(layer)
+	_fade = ColorRect.new()
+	_fade.color = Color.BLACK
+	_fade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(_fade)
+	_hint = Label.new()
+	_hint.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_hint.offset_top = 60
+	_hint.offset_left = -200
+	_hint.offset_right = 200
+	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_hint.add_theme_font_size_override("font_size", 22)
+	_hint.modulate.a = 0.0
+	layer.add_child(_hint)
+
+
+# --- Part 1 ---------------------------------------------------------------------
+
+func _begin() -> void:
+	if camp.npc == null:
+		await camp.built
+	if _flashlight:
+		_flashlight.call("set_locked", true)
+	# Darkness: nothing visible, nothing solid but the ground.
+	_set_world_hidden(true)
+	_set_camp_shown(false)
+	atmosphere.set_fog(dark_density, dark_color)
+	atmosphere.set_mist_visible(false)
+	_set_node_shown(minimap, false)
+	_in_dark = true
+	await _fade_to(0.0, 2.0)
+
+
+func _process(_delta: float) -> void:
+	if not _in_dark or _looped or player == null or camp == null:
+		return
+	var d := Vector2(player.global_position.x, player.global_position.z) - camp.fire_position
+	if d.length() > loop_radius:
+		_looped = true
+		_loop_back()
+
+
+func _loop_back() -> void:
+	_set_player_input(false)
+	await _fade_to(1.0, fade_time)
+	_place_player_by_log()
+	_set_camp_shown(true)
+	camera.snap_to_target()
+	atmosphere.set_fog(camp_density, dark_color)
+	_in_dark = false
+	await _fade_to(0.0, fade_time)
+	await _stranger_scene()
+
+
+func _place_player_by_log() -> void:
+	var log_pos := camp.log_node.global_position
+	var fire := Vector3(camp.fire_position.x, log_pos.y, camp.fire_position.y)
+	var away := log_pos - fire
+	away.y = 0.0
+	away = away.normalized()
+	var p := log_pos + away * 3.0
+	p.y = camp.ground_height(Vector2(p.x, p.z), log_pos.y) + 0.3
+	player.global_position = p
+	player.rotation.y = atan2(-away.x, -away.z) # face the log
+	player.set("velocity", Vector3.ZERO)
+	player.set("_spawn_position", p)
+
+
+func _stranger_scene() -> void:
+	var npc := camp.npc
+	npc.auto_talk = false
+	npc.set_talking(true)
+	await _dialogue.show_text(line_greeting)
+	await camera.pan_look_at(_path_point(), 1.6)
+	await _dialogue.show_text(line_path)
+	_place_first_sign()
+	await camera.pan_look_at(_sign.global_position + Vector3.UP * 1.0, 1.6)
+	await _dialogue.show_text(line_sign)
+	npc.set_talking(false)
+	await camera.release(1.2)
+	# He hands over the flashlight.
+	if _flashlight:
+		_flashlight.call("set_locked", false)
+	_show_hint("Press F to use the flashlight")
+	_set_player_input(true)
+	_waiting_for_sign = true
+
+
+func _path_point() -> Vector3:
+	var p := camp.fire_position + camp.out_direction * 14.0
+	return Vector3(p.x, camp.ground_height(p, 0.0) + 1.5, p.y)
+
+
+func _place_first_sign() -> void:
+	var out := camp.out_direction
+	var right := Vector2(-out.y, out.x)
+	var p := camp.fire_position + out * sign_distance + right * sign_side
+	var pos := Vector3(p.x, camp.ground_height(p, 0.0), p.y)
+	var away := Vector3(out.x, 0.0, out.y) # the sign faces back toward the fire
+	sign_spawner.auto_spawn = false
+	_sign = sign_spawner.spawn_at(pos, away, sign_feature)
+	_set_node_shown(_sign, true)
+
+
+# --- Called by StartSignFeature (inside the sign cutscene, game paused) ----------
+
+func on_first_sign_message(cam: Camera3D) -> void:
+	# The player is invisible now. Look down the path while the fog lifts.
+	var from := cam.global_transform
+	var to := Transform3D(Basis.IDENTITY, cam.global_position).looking_at(_path_point(), Vector3.UP)
+	var tw := create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS).set_parallel(true)
+	tw.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_method(func(t: float): cam.global_transform = from.interpolate_with(to, t), 0.0, 1.0, 1.6)
+	var d0 := atmosphere.get_fog_density()
+	var d1 := atmosphere.fog_density
+	var c0 := dark_color
+	var c1 := atmosphere.fog_color
+	tw.tween_method(func(t: float): atmosphere.set_fog(lerpf(d0, d1, t), c0.lerp(c1, t)), 0.0, 1.0, 4.0)
+	_set_world_hidden(false)
+	atmosphere.set_mist_visible(true)
+	_set_node_shown(minimap, true)
+	await tw.finished
+	await get_tree().create_timer(0.6).timeout
+
+
+func on_first_sign_done() -> void:
+	if _waiting_for_sign:
+		_waiting_for_sign = false
+		_after_sign()
+
+
+func _after_sign() -> void:
+	_set_player_input(false)
+	var npc := camp.npc
+	npc.stand_up()
+	npc.face(player.global_position)
+	await get_tree().create_timer(1.0).timeout
+	var choice := await _dialogue.ask(line_after, answers)
+	print("Prologue: answered option ", choice)
+	_set_player_input(true)
+	part_finished.emit()
+
+
+# --- Helpers --------------------------------------------------------------------
+
+func _set_player_input(on: bool) -> void:
+	player.set("input_enabled", on)
+
+
+func _set_world_hidden(hidden: bool) -> void:
+	if scatter:
+		scatter.set_enabled(not hidden)
+
+
+func _set_camp_shown(shown: bool) -> void:
+	for n in camp.spawned:
+		_set_node_shown(n, shown)
+
+
+## Shows/hides a node and switches its colliders off/on (remembering their layers).
+func _set_node_shown(node: Node, shown: bool) -> void:
+	if node == null:
+		return
+	if node is Node3D or node is CanvasLayer:
+		node.set("visible", shown)
+	var bodies: Array = node.find_children("*", "CollisionObject3D", true, false)
+	if node is CollisionObject3D:
+		bodies.append(node)
+	for b in bodies:
+		var body := b as CollisionObject3D
+		if shown:
+			if body.has_meta("saved_layer"):
+				body.collision_layer = body.get_meta("saved_layer")
+				body.remove_meta("saved_layer")
+		elif not body.has_meta("saved_layer"):
+			body.set_meta("saved_layer", body.collision_layer)
+			body.collision_layer = 0
+
+
+func _fade_to(alpha: float, time: float) -> void:
+	var tw := create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	tw.tween_property(_fade, "color:a", alpha, time)
+	await tw.finished
+
+
+func _show_hint(text: String) -> void:
+	_hint.text = text
+	var tw := create_tween()
+	tw.tween_property(_hint, "modulate:a", 1.0, 0.5)
+	tw.tween_interval(4.0)
+	tw.tween_property(_hint, "modulate:a", 0.0, 1.0)

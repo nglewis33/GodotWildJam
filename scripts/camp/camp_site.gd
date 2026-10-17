@@ -39,6 +39,14 @@ extends Node
 @export var npc_seat_offset := Vector3.ZERO
 @export var npc_yaw_offset_degrees := 0.0
 
+## Filled in once the camp is built (story code reads these).
+signal built
+var spawned: Array[Node3D] = []
+var log_node: Node3D
+var npc: SittingNpc
+var fire_position := Vector2.ZERO
+var out_direction := Vector2.RIGHT
+
 @export var ray_height := 30.0
 @export var ray_depth := 60.0
 
@@ -65,7 +73,9 @@ func _ready() -> void:
 		log_props["target_size"] = log_size_override
 	if log_height_offset != 0.0:
 		log_props["height_offset"] = log_height_offset
-	var log_node := _place(log_scene, log_pos, c, log_yaw_offset_degrees, log_props)
+	fire_position = c
+	out_direction = out_dir
+	log_node = _place(log_scene, log_pos, c, log_yaw_offset_degrees, log_props)
 	_seat_npc(log_node, c)
 
 	var player := get_tree().get_first_node_in_group("player") as Node3D
@@ -79,6 +89,7 @@ func _ready() -> void:
 		if "velocity" in player:
 			player.velocity = Vector3.ZERO
 		player.set("_spawn_position", pos) # respawn point after falling
+	built.emit()
 
 
 func _place(scene: PackedScene, p: Vector2, look_at_xz: Vector2, yaw_offset_deg: float, props: Dictionary = {}) -> Node3D:
@@ -88,6 +99,7 @@ func _place(scene: PackedScene, p: Vector2, look_at_xz: Vector2, yaw_offset_deg:
 	for k in props:
 		n.set(k, props[k]) # before add_child so the prop's _ready sees them
 	get_parent().add_child(n)
+	spawned.append(n)
 	var d := look_at_xz - p
 	var yaw := atan2(d.x, d.y) + deg_to_rad(yaw_offset_deg) if d.length() > 0.01 else 0.0
 	# Sit on the lowest ground under the footprint so tall grass tufts don't lift it.
@@ -111,11 +123,18 @@ func _seat_npc(log_node: Node3D, fire: Vector2) -> void:
 	if body:
 		skip.append(body.get_rid())
 	var seat := Vector3(spot.x, _ground_y(spot2, log_node.global_position.y, skip) + npc_seat_offset.y, spot.z)
-	var npc := npc_scene.instantiate() as Node3D
-	get_parent().add_child(npc)
-	npc.global_position = seat
+	var n := npc_scene.instantiate() as Node3D
+	get_parent().add_child(n)
+	spawned.append(n)
+	npc = n as SittingNpc
+	n.global_position = seat
 	var d := fire - Vector2(seat.x, seat.z)
-	npc.rotation.y = atan2(d.x, d.y) + deg_to_rad(npc_yaw_offset_degrees)
+	n.rotation.y = atan2(d.x, d.y) + deg_to_rad(npc_yaw_offset_degrees)
+
+
+## Ground height at a point (ignores objects, so it works while they're hidden).
+func ground_height(p: Vector2, fallback := 0.0) -> float:
+	return _ground_y(p, fallback)
 
 
 func _ground_y(p: Vector2, fallback: float, exclude: Array[RID] = []) -> float:

@@ -1,3 +1,4 @@
+class_name FollowCamera
 extends Camera3D
 ## Third-person follow camera. The mouse (up/down) tilts it around the player;
 ## left/right turning is done by the player itself.
@@ -31,6 +32,8 @@ extends Camera3D
 @export var mouse_sensitivity := 0.003
 
 var free_mode := false
+## True while a cutscene drives the camera (the follow logic pauses).
+var scripted := false
 var _yaw := 0.0
 var _pitch := 0.0
 var _follow_pitch := 0.0
@@ -61,6 +64,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _process(delta: float) -> void:
+	if scripted:
+		return
 	if free_mode:
 		_process_free(delta)
 	else:
@@ -130,6 +135,45 @@ func _process_free(delta: float) -> void:
 	if Input.is_physical_key_pressed(KEY_SHIFT):
 		speed *= free_fast_multiplier
 	global_position += dir.normalized() * speed * delta
+
+
+## Where the follow camera wants to be right now (no smoothing).
+func follow_pose() -> Transform3D:
+	if target == null:
+		return global_transform
+	var tilted := Basis(Vector3.RIGHT, _follow_pitch) * offset
+	var pos: Vector3 = target.global_transform * tilted
+	return Transform3D(Basis.IDENTITY, pos).looking_at(
+		target.global_position + Vector3.UP * look_height, Vector3.UP)
+
+
+## Jumps straight to the follow pose (after a teleport).
+func snap_to_target() -> void:
+	_focus_ready = false
+	if target:
+		global_transform = follow_pose()
+
+
+## Cutscene: turns the camera in place to look at a point.
+func pan_look_at(point: Vector3, time := 1.5) -> void:
+	scripted = true
+	var to := Transform3D(Basis.IDENTITY, global_position).looking_at(point, Vector3.UP)
+	await _tween_to(to, time)
+
+
+## Cutscene: glides back to the follow pose and hands control back.
+func release(time := 1.2) -> void:
+	await _tween_to(follow_pose(), time)
+	_focus_ready = false
+	scripted = false
+
+
+func _tween_to(to: Transform3D, time: float) -> void:
+	var from := global_transform
+	var tw := create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	tw.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_method(func(t: float): global_transform = from.interpolate_with(to, t), 0.0, 1.0, time)
+	await tw.finished
 
 
 ## Switch the free-fly camera on or off from outside (e.g. the dev menu).

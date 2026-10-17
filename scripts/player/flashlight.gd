@@ -5,6 +5,14 @@ extends SpotLight3D
 
 @export var toggle_key: Key = KEY_F
 @export var starts_on := true
+## While locked the key does nothing and the light stays off (story: not found yet).
+var locked := false
+
+
+func set_locked(value: bool) -> void:
+	locked = value
+	if locked:
+		visible = false
 
 
 func _ready() -> void:
@@ -12,6 +20,8 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if locked:
+		return
 	if event is InputEventKey and event.pressed and not event.echo \
 			and event.physical_keycode == toggle_key:
 		var player := get_parent()

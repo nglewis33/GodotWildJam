@@ -1,3 +1,4 @@
+class_name ForestScatter
 extends Node3D
 ## Procedurally scatters scenes over a rectangular area, on top of whatever
 ## ground has collision. Hard objects (trees) get a collider; soft objects
@@ -69,6 +70,7 @@ var _hard_items: Array = []  # [{"pos": Vector2, "xform": Transform3D, "entry": 
 var _hard_cells := {}  # Vector2i -> PackedInt32Array of indices into _hard_items
 var _active := {}  # index into _hard_items -> collider holder Node3D
 var _stream_timer := 0.0
+var enabled := true
 const COLLIDER_CELL := 16.0
 
 
@@ -419,8 +421,22 @@ func _collect_parts(node: Node, xf: Transform3D, out: Array) -> void:
 
 # --- Colliders near the player -------------------------------------------------
 
+## Story hook: false hides every scattered object and removes their colliders.
+func set_enabled(on: bool) -> void:
+	enabled = on
+	visible = on
+	if not on:
+		var ids: Array = _active.keys()
+		for i in ids:
+			var n: Node = _active[i]
+			_active.erase(i)
+			if is_instance_valid(n):
+				remove_child(n)
+				n.free()
+
+
 func _process(delta: float) -> void:
-	if _hard_items.is_empty():
+	if not enabled or _hard_items.is_empty():
 		return
 	_stream_timer -= delta
 	if _stream_timer > 0.0:

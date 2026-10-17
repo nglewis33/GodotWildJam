@@ -31,6 +31,21 @@ func _ready() -> void:
 	set_talking(false)
 
 
+## Gets up from the log: stops the sitting animations and stands idle.
+func stand_up(stand_animation := "Idle") -> void:
+	auto_talk = false
+	if _ap and _ap.has_animation(stand_animation):
+		_ap.get_animation(stand_animation).loop_mode = Animation.LOOP_LINEAR
+		_ap.play(stand_animation, blend)
+
+
+## Turns to face a point (yaw only).
+func face(point: Vector3) -> void:
+	var d := point - global_position
+	if Vector2(d.x, d.z).length() > 0.01:
+		rotation.y = atan2(d.x, d.z)
+
+
 ## Switches between the idle and talking animations (also usable from dialogue).
 func set_talking(value: bool) -> void:
 	_talking = value

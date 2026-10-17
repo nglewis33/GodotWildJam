@@ -7,11 +7,14 @@ extends Node
 @export var side_offset := 1.5 ## Shifts the whole row to the right so it stays off the fire line.
 @export var spacing := 3.0 ## Sideways gap between signs.
 @export var sign_height := 1.8 ## Model is rescaled to this height.
+@export var auto_spawn := true ## False: the story code calls spawn_at() itself.
 @export var ray_height := 5.0
 @export var ray_depth := 15.0
 
 
 func _ready() -> void:
+	if not auto_spawn:
+		return
 	# CampSite moves the player after two physics frames; wait for that.
 	for i in 3:
 		await get_tree().physics_frame
@@ -33,7 +36,12 @@ func _ready() -> void:
 		_spawn(player, player.global_position + fwd * distance + right * offset, fwd, list[i])
 
 
-func _spawn(player: Node3D, pos: Vector3, fwd: Vector3, feature: SignFeature) -> void:
+## Places one sign at a point; its face looks along -fwd (toward whoever walks along fwd).
+func spawn_at(pos: Vector3, fwd: Vector3, feature: SignFeature) -> Node3D:
+	return _spawn(get_parent() as Node3D, pos, fwd, feature)
+
+
+func _spawn(player: Node3D, pos: Vector3, fwd: Vector3, feature: SignFeature) -> Node3D:
 	var q := PhysicsRayQueryParameters3D.create(pos + Vector3.UP * ray_height, pos + Vector3.DOWN * ray_depth)
 	var hit := player.get_world_3d().direct_space_state.intersect_ray(q)
 	if hit:
@@ -55,6 +63,7 @@ func _spawn(player: Node3D, pos: Vector3, fwd: Vector3, feature: SignFeature) ->
 	if feature:
 		ctrl.feature = feature
 	print("SignSpawner: sign at ", s.global_position, " ground hit: ", hit != null)
+	return s
 
 
 func _local_aabb(root: Node3D) -> AABB:
