@@ -80,9 +80,11 @@ var _noise := FastNoiseLite.new()
 var _long_along_z := true
 var _path_pos := Vector2.ZERO
 var _samples: Array = [] # rim samples, see _make_samples()
+var _spot := {} # where to stand to cross the bridge: {"position": Vector3, "yaw": float}
 
 
 func _ready() -> void:
+	add_to_group("ravine")
 	if not enabled:
 		return
 	if ground_grid == null or path_generator == null:
@@ -112,6 +114,12 @@ func get_center_line() -> PackedVector2Array:
 	if _long_along_z:
 		return PackedVector2Array([Vector2(c.x, hole.position.y), Vector2(c.x, hole.end.y)])
 	return PackedVector2Array([Vector2(hole.position.x, c.y), Vector2(hole.end.x, c.y)])
+
+
+## Where to put the player to walk across the bridge: {"position": Vector3, "yaw": float},
+## or an empty Dictionary if the ravine isn't finished yet.
+func get_teleport_spot() -> Dictionary:
+	return _spot
 
 
 ## True if a world (X, Z) point is inside the hole or within margin of it.
@@ -598,6 +606,15 @@ func _build_bridge() -> void:
 	var ends := _bridge_ends()
 	bridge.build(ends[0], ends[1])
 	_connect_path(ends, bridge.get_approach_length())
+	# A spot just before the first set of steps, facing the bridge.
+	var a2 := Vector2(ends[0].x, ends[0].z)
+	var b2 := Vector2(ends[1].x, ends[1].z)
+	var axis := (b2 - a2).normalized()
+	var spot := a2 - axis * (bridge.get_approach_length() + 4.0)
+	_spot = {
+		"position": Vector3(spot.x, _ground_y(spot, ends[0].y - bridge.end_lift) + 0.3, spot.y),
+		"yaw": atan2(axis.x, axis.y),
+	}
 
 
 ## Redraws the path from where the main path meets the ravine to the far end of

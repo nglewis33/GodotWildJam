@@ -80,6 +80,11 @@ func _process_free(delta: float) -> void:
 	global_position += dir.normalized() * speed * delta
 
 
+## Switch the free-fly camera on or off from outside (e.g. the dev menu).
+func set_free_mode(on: bool) -> void:
+	_set_free(on)
+
+
 func _set_free(on: bool) -> void:
 	free_mode = on
 	if on:
