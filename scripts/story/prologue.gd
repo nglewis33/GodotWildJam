@@ -101,6 +101,7 @@ func _begin() -> void:
 		await camp.built
 	if _flashlight:
 		_flashlight.call("set_locked", true)
+	_place_first_sign() # can't be read until the flashlight is handed over
 	# Nothing but the camp is visible, and nothing is solid but the ground.
 	_set_world_hidden(true)
 	if not start_with_dark_walk:
@@ -202,7 +203,6 @@ func _stranger_scene() -> void:
 	await _dialogue.show_text(line_greeting)
 	await camera.pan_look_at(_path_point(), 1.6)
 	await _dialogue.show_text(line_path)
-	_place_first_sign()
 	await camera.pan_look_at(_sign.global_position + Vector3.UP * 1.0, 1.6)
 	await _dialogue.show_text(line_sign)
 	npc.set_talking(false)
