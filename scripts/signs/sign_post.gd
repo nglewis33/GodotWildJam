@@ -9,6 +9,8 @@ extends Node
 @export var wait_time := 2.0
 ## How fast the ring empties when the light moves off (fraction per second).
 @export var release_speed := 0.5
+## Trees, rocks and the like between the light and the sign block it.
+@export var require_line_of_sight := true
 @export_range(0, 90) var max_view_angle := 75.0 ## Degrees off the sign's front.
 @export var reread_with_e := true ## After the first read, press E (nearby, in front, flashlight on) to read again.
 @export_group("Cutscene")
@@ -134,9 +136,24 @@ func _beam_touches(player: Node) -> bool:
 		var d := to.length()
 		if d < 0.05 or d > f.spot_range:
 			continue
-		if axis.angle_to(to / d) <= half:
+		if axis.angle_to(to / d) <= half and _line_clear(f.global_position, p, player):
 			return true
 	return false
+
+
+## No solid object between the light and the point (the sign's own collider doesn't count).
+func _line_clear(from: Vector3, to: Vector3, player: Node) -> bool:
+	if not require_line_of_sight:
+		return true
+	var space := (get_parent() as Node3D).get_world_3d().direct_space_state
+	var q := PhysicsRayQueryParameters3D.create(from, to)
+	if player is CollisionObject3D:
+		q.exclude = [(player as CollisionObject3D).get_rid()]
+	var hit := space.intersect_ray(q)
+	if hit.is_empty():
+		return true
+	var c := hit.collider as Node
+	return c != null and get_parent().is_ancestor_of(c)
 
 
 func _unhandled_input(event: InputEvent) -> void:
