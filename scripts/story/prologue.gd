@@ -41,6 +41,12 @@ signal part_finished
 @export var sign_distance := 5.5
 @export var sign_side := 2.5
 
+@export_group("Cutscene Camera")
+## How far down the path (from the fire) the camera stands to look along it.
+@export var path_view_distance := 6.0
+## How far in front of the sign the camera stands to look at it.
+@export var sign_view_distance := 2.4
+
 @export_group("Dialogue")
 @export_multiline var line_greeting := "Thank the heavens! Someone else is here to share in my misery. I have been lost in these woods for quite an age..."
 @export_multiline var line_path := "You see that path? Whenever I try to follow the path, something nefarious always stops me from continuing, and I must return to this here camp"
@@ -205,12 +211,14 @@ func _stranger_scene() -> void:
 	npc.auto_talk = false
 	npc.set_talking(true)
 	await _dialogue.show_text(line_greeting)
-	await camera.pan_look_at(_path_point(), 1.6)
+	var pv := _path_view()
+	await camera.fly_to(pv[0], pv[1], 2.2)
 	await _dialogue.show_text(line_path)
-	await camera.pan_look_at(_sign.global_position + Vector3.UP * 1.0, 1.6)
+	var sv := _sign_view()
+	await camera.fly_to(sv[0], sv[1], 2.2)
 	await _dialogue.show_text(line_sign)
 	npc.set_talking(false)
-	await camera.release(1.2)
+	await camera.release(2.0)
 	# He hands over the flashlight.
 	if _flashlight:
 		_flashlight.call("set_locked", false)
@@ -219,9 +227,20 @@ func _stranger_scene() -> void:
 	_waiting_for_sign = true
 
 
-func _path_point() -> Vector3:
-	var p := camp.fire_position + camp.out_direction * 14.0
-	return Vector3(p.x, camp.ground_height(p, 0.0) + 1.5, p.y)
+## Camera spot and look-at point for staring down the path.
+func _path_view() -> Array:
+	var out := camp.out_direction
+	var a := camp.fire_position + out * path_view_distance
+	var b := camp.fire_position + out * (path_view_distance + 25.0)
+	return [Vector3(a.x, camp.ground_height(a, 0.0) + 2.0, a.y),
+			Vector3(b.x, camp.ground_height(b, 0.0) + 1.2, b.y)]
+
+
+## Camera spot (in front of the sign) and look-at point for reading it.
+func _sign_view() -> Array:
+	var center := _sign.global_position + Vector3.UP * 1.0
+	var front := Vector3(-camp.out_direction.x, 0.0, -camp.out_direction.y)
+	return [center + front * sign_view_distance + Vector3.UP * 0.4, center]
 
 
 func _place_first_sign() -> void:
@@ -240,10 +259,11 @@ func _place_first_sign() -> void:
 func on_first_sign_message(cam: Camera3D) -> void:
 	# The player is invisible now. Look down the path while the fog lifts.
 	var from := cam.global_transform
-	var to := Transform3D(Basis.IDENTITY, cam.global_position).looking_at(_path_point(), Vector3.UP)
+	var pv := _path_view()
+	var to := Transform3D(Basis.IDENTITY, pv[0]).looking_at(pv[1], Vector3.UP)
 	var tw := create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS).set_parallel(true)
 	tw.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	tw.tween_method(func(t: float): cam.global_transform = from.interpolate_with(to, t), 0.0, 1.0, 1.6)
+	tw.tween_method(func(t: float): cam.global_transform = from.interpolate_with(to, t), 0.0, 1.0, 2.2)
 	var d0 := atmosphere.get_fog_density()
 	var d1 := atmosphere.fog_density
 	var c0 := dark_color

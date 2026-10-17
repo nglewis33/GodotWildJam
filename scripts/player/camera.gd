@@ -161,6 +161,12 @@ func pan_look_at(point: Vector3, time := 1.5) -> void:
 	await _tween_to(to, time)
 
 
+## Cutscene: flies the camera to a spot and stares at a point from there.
+func fly_to(pos: Vector3, look: Vector3, time := 2.0) -> void:
+	scripted = true
+	await _tween_to(Transform3D(Basis.IDENTITY, pos).looking_at(look, Vector3.UP), time)
+
+
 ## Cutscene: glides back to the follow pose and hands control back.
 func release(time := 1.2) -> void:
 	await _tween_to(follow_pose(), time)
