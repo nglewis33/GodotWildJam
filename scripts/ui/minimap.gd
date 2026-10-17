@@ -28,6 +28,8 @@ extends CanvasLayer
 @export var ravine_color := Color(1.0, 0.85, 0.1, 0.95)
 @export var player_color := Color(1.0, 0.85, 0.2)
 @export var npc_color := Color(0.4, 0.8, 1.0)
+@export var sign_marker_color := Color(0.95, 0.15, 0.15)
+@export var tent_marker_color := Color(0.2, 0.85, 0.3)
 
 const QUAD_NAMES := ["NW", "NE", "SW", "SE"]
 
@@ -41,9 +43,20 @@ var _timer := 0.0
 var _ravine_seen := false
 var _origin := Vector2.ZERO
 var _k := Vector2.ONE
+var _markers: Array = [] # [Vector2 world position, String kind]
+
+
+## Drops a dot on the map: kind is "sign" (red) or "tent" (green).
+func add_marker(world: Vector3, kind: String) -> void:
+	var p := Vector2(world.x, world.z)
+	for m in _markers:
+		if m[1] == kind and (m[0] as Vector2).distance_to(p) < 1.0:
+			return
+	_markers.append([p, kind])
 
 
 func _ready() -> void:
+	add_to_group("minimap")
 	layer = 39
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
@@ -220,6 +233,13 @@ func _on_draw() -> void:
 		else:
 			_view.draw_line(a, _w2m(piece[1]), path_color, line_width * big, true)
 
+	# Read signs and looted tents.
+	for m in _markers:
+		var col := sign_marker_color if m[1] == "sign" else tent_marker_color
+		var mp := _w2m(m[0])
+		_view.draw_circle(mp, 3.6 * big, Color(0, 0, 0, 0.8))
+		_view.draw_circle(mp, 2.6 * big, col)
+
 	# NPCs.
 	for n in get_tree().get_nodes_in_group("npc"):
 		if n is Node3D:
@@ -237,6 +257,19 @@ func _on_draw() -> void:
 				pp + f * s * 1.3,
 				pp - f * s * 0.8 + f.orthogonal() * s * 0.8,
 				pp - f * s * 0.8 - f.orthogonal() * s * 0.8]), player_color)
+
+	# Key for the dots.
+	var fs := 15 if _expanded else 10
+	var row := fs + 4.0
+	var kx := 6.0
+	var ky := sz.y - 6.0 - row * 2.0
+	_view.draw_rect(Rect2(Vector2(kx - 3.0, ky - 2.0), Vector2(fs * 3.4, row * 2.0 + 4.0)), Color(0, 0, 0, 0.45))
+	_view.draw_circle(Vector2(kx + fs * 0.4, ky + row * 0.5), fs * 0.32, sign_marker_color)
+	_view.draw_string(ThemeDB.fallback_font, Vector2(kx + fs, ky + row * 0.5 + fs * 0.35), "Sign",
+			HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, 0.85))
+	_view.draw_circle(Vector2(kx + fs * 0.4, ky + row * 1.5), fs * 0.32, tent_marker_color)
+	_view.draw_string(ThemeDB.fallback_font, Vector2(kx + fs, ky + row * 1.5 + fs * 0.35), "Tent",
+			HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, 0.85))
 
 	# Frame, quadrant name and "map continues" arrows.
 	_view.draw_rect(Rect2(Vector2.ZERO, sz), Color(1, 1, 1, 0.35), false, 1.0)

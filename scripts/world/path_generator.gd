@@ -56,6 +56,8 @@ enum Quadrant { RANDOM, NW, NE, SW, SE }
 @export_range(10.0, 120.0, 1.0) var fork_max_angle := 80.0
 ## Forks dead-end rather than come closer than this to any other path.
 @export var fork_clearance := 15.0
+## No forks leave the main path during this first fraction of its length.
+@export_range(0.0, 0.9, 0.01) var fork_free_fraction := 0.2
 ## Forks steer away from any path within this distance (past or future path).
 @export var fork_avoid_radius := 40.0
 
@@ -437,7 +439,14 @@ func _make_fork(polylines: Array, origins: Array[Vector2], inner: Rect2) -> Dict
 		if pi > 0 and not branch_from_forks:
 			break
 		var pts: PackedVector2Array = polylines[pi].pts
+		var cum := PackedFloat32Array()
+		cum.resize(pts.size())
+		for i in range(1, pts.size()):
+			cum[i] = cum[i - 1] + pts[i].distance_to(pts[i - 1])
+		var total := maxf(cum[pts.size() - 1], 0.001)
 		for i in range(1, pts.size() - 1):
+			if pi == 0 and cum[i] / total < fork_free_fraction:
+				continue
 			candidates.append([pi, i])
 	var spacing := maxf(maxf(fork_clearance * 2.0, path_width * 3.0), 8.0)
 	var min_a := deg_to_rad(fork_min_angle)

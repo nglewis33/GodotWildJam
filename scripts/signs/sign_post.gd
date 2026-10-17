@@ -21,6 +21,7 @@ var _timer := 0.0
 var _busy := false
 var _read := false
 var _dialogue: DialogueBox
+var _prompt: InteractPrompt
 
 
 ## For Interaction: re-reading with E, once it has been read.
@@ -28,7 +29,7 @@ func interact_ready() -> bool:
 	if not (reread_with_e and _read) or _busy:
 		return false
 	var player := get_tree().get_first_node_in_group("player") as Node3D
-	return player != null and _can_read(player)
+	return player != null and _near(player) and _in_front(player)
 
 
 func interact_position() -> Vector3:
@@ -40,6 +41,8 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS # keep running so the cutscene survives the pause
 	_dialogue = DialogueBox.new()
 	add_child(_dialogue)
+	_prompt = InteractPrompt.new()
+	add_child(_prompt)
 
 
 func _near(player: Node3D) -> bool:
@@ -64,6 +67,7 @@ func _can_read(player: Node3D) -> bool:
 
 
 func _process(delta: float) -> void:
+	_prompt.show_prompt("Press E to re-read the sign", interact_ready() and Interaction.is_best(self))
 	if _busy or get_tree().paused or _read or Cutscene.busy():
 		return
 	var player := get_tree().get_first_node_in_group("player") as Node3D
@@ -83,7 +87,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_E:
 		var player := get_tree().get_first_node_in_group("player") as Node3D
-		if player and _can_read(player) and Interaction.is_best(self):
+		if player and _near(player) and _in_front(player) and Interaction.is_best(self):
 			_run_cutscene(player)
 
 
@@ -123,6 +127,9 @@ func _run_cutscene(player: Node3D) -> void:
 	await _transition(cam, cam.global_transform, origin, player, PlayerFade.get_opacity(player), base_o)
 
 	get_tree().paused = false
+	if not _read: # first time: mark it on the map
+		var sp := (get_parent() as Node3D).global_position
+		get_tree().call_group("minimap", "add_marker", sp, "sign")
 	_read = true
 	_busy = false
 	Cutscene.finish()

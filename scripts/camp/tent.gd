@@ -98,6 +98,7 @@ func search() -> void:
 		inv.add(id)
 		names.append(String(id).capitalize())
 	_show_toast("Took: " + ", ".join(names))
+	get_tree().call_group("minimap", "add_marker", global_position, "tent")
 	looted.emit(taken)
 
 
