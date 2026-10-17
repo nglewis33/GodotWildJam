@@ -29,6 +29,11 @@ signal part_finished
 @export var start_with_dark_walk := false
 @export var talk_distance := 4.0
 
+@export_group("Fog Lift")
+## The fog briefly thickens to this as the forest appears, then thins out over lift_time.
+@export var lift_peak_density := 0.3
+@export var lift_time := 6.0
+
 @export_group("Loop")
 ## Leave this radius around the fire in the dark and you wake up at camp again.
 @export var loop_radius := 14.0
@@ -54,6 +59,11 @@ signal part_finished
 @export var sign_view_height := 1.1
 @export var sign_look_height := 1.1
 
+@export_group("Stranger Camera")
+@export var npc_view_distance := 3.0
+@export var npc_view_height := 1.5
+@export var npc_look_height := 1.4
+
 @export_group("Dialogue")
 @export_multiline var line_greeting := "Thank the heavens! Someone else is here to share in my misery. I have been lost in these woods for quite an age..."
 @export_multiline var line_path := "You see that path? Whenever I try to follow the path, something nefarious always stops me from continuing, and I must return to this here camp"
@@ -76,6 +86,7 @@ var _waiting_for_sign := false
 
 
 func _ready() -> void:
+	Cutscene.reset()
 	process_mode = Node.PROCESS_MODE_ALWAYS # keeps running during the sign cutscene's pause
 	_dialogue = DialogueBox.new()
 	add_child(_dialogue)
@@ -174,7 +185,7 @@ func _respawn_at_camp() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not _waiting_for_talk or get_tree().paused:
+	if not _waiting_for_talk or get_tree().paused or Cutscene.busy():
 		return
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_E:
 		var d := player.global_position - camp.npc.global_position
@@ -214,6 +225,7 @@ func _place_player_by_log() -> void:
 
 func _stranger_scene() -> void:
 	var npc := camp.npc
+	Cutscene.begin()
 	_set_player_input(false)
 	npc.auto_talk = false
 	npc.set_talking(true)
@@ -232,6 +244,7 @@ func _stranger_scene() -> void:
 	_show_hint("Press F to use the flashlight")
 	_set_player_input(true)
 	_waiting_for_sign = true
+	Cutscene.finish()
 
 
 ## Camera spot and look-at point for staring down the path.
@@ -254,6 +267,18 @@ func _route_point(dist: float) -> Vector2:
 			return route[i].lerp(route[i + 1], left / seg)
 		left -= seg
 	return route[route.size() - 1]
+
+
+## Camera spot and look-at point for facing the stranger (from the player's side).
+func _npc_view() -> Array:
+	var np := camp.npc.global_position
+	var to_player := player.global_position - np
+	to_player.y = 0.0
+	to_player = to_player.normalized()
+	var side := Vector3.UP.cross(to_player)
+	var pos := np + to_player * npc_view_distance + side * 0.6
+	pos.y = np.y + npc_view_height
+	return [pos, np + Vector3.UP * npc_look_height]
 
 
 ## Camera spot (in front of the sign) and look-at point for reading it.
@@ -290,12 +315,18 @@ func on_first_sign_message(cam: Camera3D) -> void:
 	var d1 := atmosphere.fog_density
 	var c0 := dark_color
 	var c1 := atmosphere.fog_color
-	tw.tween_method(func(t: float): atmosphere.set_fog(lerpf(d0, d1, t), c0.lerp(c1, t)), 0.0, 1.0, 4.0)
-	_set_world_hidden(false)
-	atmosphere.set_mist_visible(true)
-	_set_node_shown(minimap, true)
+	# The forest appears hidden inside a thicker fog, then the fog slowly thins.
+	var fw := create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	fw.tween_method(func(t: float): atmosphere.set_fog(lerpf(d0, lift_peak_density, t), c0), 0.0, 1.0, 0.8)
+	fw.tween_callback(func():
+		_set_world_hidden(false)
+		atmosphere.set_mist_visible(true)
+		_set_node_shown(minimap, true))
+	fw.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	fw.tween_method(func(t: float): atmosphere.set_fog(lerpf(lift_peak_density, d1, t), c0.lerp(c1, t)), 0.0, 1.0, lift_time)
 	await tw.finished
-	await get_tree().create_timer(0.6).timeout
+	await fw.finished
+	await get_tree().create_timer(0.4).timeout
 
 
 func on_first_sign_done() -> void:
@@ -306,14 +337,19 @@ func on_first_sign_done() -> void:
 
 
 func _after_sign() -> void:
+	Cutscene.begin()
 	_set_player_input(false)
 	var npc := camp.npc
 	npc.stand_up()
 	npc.face(player.global_position)
-	await get_tree().create_timer(1.0).timeout
+	var nv := _npc_view()
+	await camera.fly_to(nv[0], nv[1], 2.0)
+	await get_tree().create_timer(0.5).timeout
 	var choice := await _dialogue.ask(line_after, answers)
 	print("Prologue: answered option ", choice)
+	await camera.release(1.6)
 	_set_player_input(true)
+	Cutscene.finish()
 	part_finished.emit()
 
 

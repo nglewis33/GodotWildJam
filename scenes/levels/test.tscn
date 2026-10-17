@@ -41,6 +41,7 @@
 [ext_resource type="PackedScene" path="res://scenes/npc/NPC.tscn" id="75_npc"]
 [ext_resource type="Script" uid="uid://vth086a3vtir" path="res://scripts/ui/minimap.gd" id="80_minimap"]
 
+[ext_resource type="Script" path="res://scripts/ui/controls_hint.gd" id="95_hints"]
 [sub_resource type="Resource" id="Resource_ff7wo"]
 script = ExtResource("6_0w447")
 scene = ExtResource("7_s3ppv")
@@ -236,3 +237,6 @@ ground_grid = NodePath("../Ground")
 path_generator = NodePath("../PathGenerator")
 ravine = NodePath("../Ravine")
 reveal_all = true
+
+[node name="ControlsHint" type="CanvasLayer" parent="."]
+script = ExtResource("95_hints")

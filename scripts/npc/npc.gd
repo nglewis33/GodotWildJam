@@ -6,6 +6,8 @@ extends Node3D
 @export var idle_animation := "Sitting_Idle"
 @export var talk_animation := "Sitting_Talking"
 @export var blend := 0.3
+## When standing up he steps this far forward (away from the log).
+@export var stand_forward := 0.45
 @export var auto_talk := true
 @export var idle_time_min := 4.0
 @export var idle_time_max := 10.0
@@ -34,6 +36,9 @@ func _ready() -> void:
 ## Gets up from the log: stops the sitting animations and stands idle.
 func stand_up(stand_animation := "Idle") -> void:
 	auto_talk = false
+	if stand_forward > 0.0:
+		var to := global_position + global_transform.basis.z * stand_forward
+		create_tween().tween_property(self, "global_position", to, 0.5)
 	if _ap and _ap.has_animation(stand_animation):
 		_ap.get_animation(stand_animation).loop_mode = Animation.LOOP_LINEAR
 		_ap.play(stand_animation, blend)

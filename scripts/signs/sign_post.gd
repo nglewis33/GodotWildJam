@@ -51,7 +51,7 @@ func _can_read(player: Node3D) -> bool:
 
 
 func _process(delta: float) -> void:
-	if _busy or get_tree().paused or _read:
+	if _busy or get_tree().paused or _read or Cutscene.busy():
 		return
 	var player := get_tree().get_first_node_in_group("player") as Node3D
 	if player == null:
@@ -66,7 +66,7 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not (reread_with_e and _read) or _busy or get_tree().paused:
+	if not (reread_with_e and _read) or _busy or get_tree().paused or Cutscene.busy():
 		return
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_E:
 		var player := get_tree().get_first_node_in_group("player") as Node3D
@@ -81,9 +81,11 @@ func _flashlight_on(player: Node) -> bool:
 
 func _run_cutscene(player: Node3D) -> void:
 	_busy = true
+	Cutscene.begin()
 	var cam := get_viewport().get_camera_3d()
 	if cam == null:
 		_busy = false
+		Cutscene.finish()
 		return
 	get_tree().paused = true
 	var sign_node := get_parent() as Node3D
@@ -110,6 +112,7 @@ func _run_cutscene(player: Node3D) -> void:
 	get_tree().paused = false
 	_read = true
 	_busy = false
+	Cutscene.finish()
 	if feature:
 		feature.apply(get_tree().current_scene)
 	finished.emit()

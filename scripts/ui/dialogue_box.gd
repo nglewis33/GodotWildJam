@@ -116,6 +116,7 @@ func _choice_text() -> String:
 
 
 func _present(text: String) -> void:
+	Cutscene.begin()
 	_label.text = text
 	_label.visible_characters = 0
 	_label.position.y = 0.0
@@ -148,6 +149,7 @@ func _present(text: String) -> void:
 
 
 func _close() -> void:
+	Cutscene.finish()
 	_mode = Mode.IDLE
 	visible = false
 	closed.emit()
@@ -209,6 +211,8 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled() # keeps Esc from toggling the pause menu
 		return
 	var is_e: bool = event.physical_keycode == KEY_E
+	if is_e:
+		get_viewport().set_input_as_handled() # E never leaks to other interactions
 	if _mode == Mode.WAIT and is_e:
 		get_viewport().set_input_as_handled()
 		_advance.emit()
