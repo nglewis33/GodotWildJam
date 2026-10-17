@@ -33,10 +33,6 @@
 [ext_resource type="AudioStream" path="res://assets/audio/music/syouki_takahashi-midnight-forest-184304.ogg" id="50_music"]
 [ext_resource type="Script" uid="uid://c4wamgqw84fwd" path="res://scripts/audio/music.gd" id="51_musicscript"]
 [ext_resource type="PackedScene" path="res://scenes/ui/PauseMenu.tscn" id="52_pause"]
-[ext_resource type="Script" uid="uid://dknynho8iifvt" path="res://scripts/signs/sign_spawner.gd" id="60_signspawner"]
-[ext_resource type="PackedScene" uid="uid://bgs1sgv721ooy" path="res://scenes/signs/post_sign.tscn" id="61_sign"]
-[ext_resource type="Script" uid="uid://bcrtj354fhy6q" path="res://scripts/signs/sign_feature.gd" id="62_feat"]
-[ext_resource type="Resource" uid="uid://d3y5cac0psnlv" path="res://resources/sign_features/ghost.tres" id="63_ghost"]
 [ext_resource type="Script" uid="uid://dfsdmammnxjt7" path="res://scripts/world/path_generator.gd" id="70_pathgen"]
 [ext_resource type="Script" uid="uid://dx0g3uxp05vue" path="res://scripts/camp/camp_site.gd" id="71_camp"]
 [ext_resource type="PackedScene" path="res://scenes/camp/Campfire.tscn" id="72_fire"]
@@ -195,11 +191,6 @@ gap_std_dev = 12.0
 start_delay = 2.0
 
 [node name="PauseMenu" parent="." unique_id=2028114063 instance=ExtResource("52_pause")]
-
-[node name="SignSpawner" type="Node" parent="." unique_id=785494615]
-script = ExtResource("60_signspawner")
-sign_scene = ExtResource("61_sign")
-features = Array[ExtResource("62_feat")]([ExtResource("63_ghost")])
 
 [node name="Rain" parent="." unique_id=1180229721 instance=ExtResource("35_7arqs")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -129.76149, 410.85876, 196.41121)

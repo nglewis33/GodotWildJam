@@ -127,32 +127,50 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector3.ZERO
 
 
-## If walking into a low ledge (up to step_up_height), lift the body onto it.
-func _try_step_up(delta: float) -> void:
+## If walking into a low ledge (up to step_up_height), carry the body up and
+## onto it in one go: up, forward past the edge, then down onto the top.
+## (Just lifting it isn't enough: the capsule would hang over the edge and drop back.)
+func _try_step_up(_delta: float) -> void:
 	if step_up_height <= 0.0 or not is_on_floor():
 		return
-	var flat := Vector3(velocity.x, 0.0, velocity.z) * delta
-	if flat.length() < 0.0001:
+	var heading := Vector3(velocity.x, 0.0, velocity.z)
+	if heading.length() < 0.1:
 		return
-	var motion := flat.normalized() * maxf(flat.length(), 0.1)
-	var hit := KinematicCollision3D.new()
-	if not test_move(global_transform, motion, hit):
+	heading = heading.normalized()
+	var probe := KinematicCollision3D.new()
+	if not test_move(global_transform, heading * 0.1, probe):
 		return # nothing in the way
-	if hit.get_normal().y > 0.5:
+	if probe.get_normal().y > 0.5:
 		return # a gentle slope: move_and_slide already climbs those
 	var up := Vector3.UP * step_up_height
 	if test_move(global_transform, up):
 		return # head would hit something
 	var raised := global_transform.translated(up)
-	if test_move(raised, motion):
+	var forward := heading * (_body_radius() + 0.1) # far enough to be over the ledge
+	if test_move(raised, forward):
 		return # still blocked up there: the ledge is too tall
-	# How far down is the top of the ledge, just past its edge?
+	var over := raised.translated(forward)
 	var down := KinematicCollision3D.new()
-	if not test_move(raised.translated(motion), Vector3.DOWN * (step_up_height + 0.05), down):
+	if not test_move(over, Vector3.DOWN * (step_up_height + 0.1), down):
 		return # nothing to stand on
-	var rise := step_up_height + down.get_travel().y # travel.y is negative
-	if rise > 0.01:
-		global_position.y += rise + 0.01
+	if down.get_normal().y < 0.7:
+		return # not a flat top
+	var landed := over.origin + down.get_travel()
+	var rise := landed.y - global_position.y
+	if rise < 0.02 or rise > step_up_height + 0.02:
+		return
+	global_position = landed
+	velocity.y = 0.0
+
+
+func _body_radius() -> float:
+	for c in find_children("*", "CollisionShape3D", false, false):
+		var shape = (c as CollisionShape3D).shape
+		if shape is CapsuleShape3D:
+			return (shape as CapsuleShape3D).radius
+		if shape is CylinderShape3D:
+			return (shape as CylinderShape3D).radius
+	return 0.35
 
 
 ## Turn toward the queued mouse turning, no faster than max_turn_speed.
