@@ -16,6 +16,9 @@ extends Camera3D
 @export var vertical_smooth_time := 0.35
 ## The camera's focus never trails the player's height by more than this (falls).
 @export var max_vertical_lag := 2.5
+## How quickly the camera's focus point catches up sideways when the player pops
+## forward (like a step-up), so the view angle doesn't snap. Higher = tighter. 0 = off.
+@export var focus_smoothing := 14.0
 ## Radians per pixel of vertical mouse movement.
 @export var pitch_sensitivity := 0.003
 @export var min_follow_pitch := -0.4
@@ -31,6 +34,7 @@ var free_mode := false
 var _yaw := 0.0
 var _pitch := 0.0
 var _follow_pitch := 0.0
+var _focus := Vector3.ZERO
 var _focus_y := 0.0
 var _focus_vy := 0.0
 var _focus_ready := false
@@ -67,20 +71,39 @@ func _process_follow(delta: float) -> void:
 	if target == null:
 		return
 	var focus := target.global_transform
-	focus.origin.y = _smooth_focus_y(target.global_position.y, delta)
+	focus.origin = _smooth_focus(target.global_position, delta)
 	var tilted := Basis(Vector3.RIGHT, _follow_pitch) * offset
 	var desired := focus * tilted
 	global_position = global_position.lerp(desired, 1.0 - exp(-smoothing * delta))
 	look_at(focus.origin + Vector3.UP * look_height)
 
 
-## Critically damped spring toward the target's height (no overshoot).
-func _smooth_focus_y(goal: float, delta: float) -> float:
-	if not _focus_ready or vertical_smooth_time <= 0.0 or absf(_focus_y - goal) > 40.0:
-		_focus_y = goal # first frame, smoothing off, or a teleport/respawn: snap
+## The point the camera looks at and orbits: sideways it eases toward the
+## player, vertically it follows a damped spring.
+func _smooth_focus(goal: Vector3, delta: float) -> Vector3:
+	if not _focus_ready or goal.distance_to(_focus) > 40.0:
+		_focus = goal # first frame or a teleport/respawn: snap
+		_focus_y = goal.y
 		_focus_vy = 0.0
 		_focus_ready = true
-		return _focus_y
+		return _focus
+	if focus_smoothing > 0.0:
+		var k := 1.0 - exp(-focus_smoothing * delta)
+		_focus.x = lerpf(_focus.x, goal.x, k)
+		_focus.z = lerpf(_focus.z, goal.z, k)
+	else:
+		_focus.x = goal.x
+		_focus.z = goal.z
+	_focus.y = _smooth_focus_y(goal.y, delta)
+	_focus_y = _focus.y
+	return _focus
+
+
+## Critically damped spring toward the target's height (no overshoot).
+func _smooth_focus_y(goal: float, delta: float) -> float:
+	if vertical_smooth_time <= 0.0:
+		_focus_vy = 0.0
+		return goal
 	var omega := 2.0 / vertical_smooth_time
 	var x := omega * delta
 	var damp := 1.0 / (1.0 + x + 0.48 * x * x + 0.235 * x * x * x)
