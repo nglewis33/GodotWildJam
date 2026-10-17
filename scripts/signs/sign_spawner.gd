@@ -56,6 +56,16 @@ func _spawn(player: Node3D, pos: Vector3, fwd: Vector3, feature: SignFeature) ->
 		var k := sign_height / box.size.y
 		s.scale = Vector3.ONE * k
 		s.global_position = pos - Vector3.UP * (box.position.y * k) # bottom sits on ground
+	var solid := _local_aabb(s)
+	if solid.size.length() > 0.0001:
+		var body := StaticBody3D.new()
+		var col := CollisionShape3D.new()
+		var shape := BoxShape3D.new()
+		shape.size = solid.size
+		col.shape = shape
+		col.position = solid.get_center()
+		body.add_child(col)
+		s.add_child(body)
 	var ctrl := s.find_child("SignPost", true, false) as SignPost
 	if ctrl == null:
 		ctrl = SignPost.new()

@@ -113,8 +113,6 @@ func _begin() -> void:
 		camera.snap_to_target()
 		await _fade_to(0.0, 2.0)
 		_waiting_for_talk = true
-		_hint.text = "Press E to talk"
-		_hint.modulate.a = 1.0
 		return
 	_set_camp_shown(false)
 	atmosphere.set_fog(dark_density, dark_color)
@@ -128,6 +126,12 @@ func _begin() -> void:
 func _process(delta: float) -> void:
 	if player == null or camp == null or camp.npc == null:
 		return
+	if _waiting_for_talk:
+		var to_npc := player.global_position - camp.npc.global_position
+		to_npc.y = 0.0
+		var near := to_npc.length() <= talk_distance and not get_tree().paused
+		_hint.text = "Press E to interact"
+		_hint.modulate.a = 1.0 if near else 0.0
 	if _leashed and not _in_dark and _looped and not _respawning and not get_tree().paused \
 			and bool(player.get("input_enabled")):
 		var away := Vector2(player.global_position.x, player.global_position.z) - camp.fire_position
