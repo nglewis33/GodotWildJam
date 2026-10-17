@@ -66,8 +66,8 @@ signal built ## Walls and bridge exist.
 
 @export_group("Bridge")
 @export var build_bridge := true
-## The deck starts this far back from the jagged rim, on solid ground.
-@export var anchor_inset := 2.0
+## The deck starts this far back from the jagged rim, so it begins on solid ground before the drop.
+@export var anchor_inset := 6.0
 
 ## World-space footprint of the removed tiles (X, Z). Empty until carved.
 var hole := Rect2()
@@ -604,6 +604,8 @@ func _build_bridge() -> void:
 		bridge.name = "Bridge"
 		add_child(bridge)
 	var ends := _bridge_ends()
+	var rim_y: float = ends[0].y
+	bridge.ground_sampler = func(p: Vector2) -> float: return _ground_y(p, rim_y)
 	bridge.build(ends[0], ends[1])
 	_connect_path(ends, bridge.get_approach_length())
 	# A spot just before the first set of steps, facing the bridge.

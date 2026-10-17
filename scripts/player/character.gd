@@ -69,6 +69,8 @@ var _pending_turn := 0.0  # radians still to turn
 var _jump_cooldown_left := 0.0
 var stamina := 200.0
 var exhausted := false
+## Dev option: stamina never goes down (set from the pause menu's Dev Controls).
+var infinite_stamina := false
 var _sprinting := false
 @onready var anim: AnimationPlayer = find_child("AnimationPlayer", true, false)
 
@@ -172,12 +174,19 @@ func jump_cooldown_progress() -> float:
 
 func start_jump_cooldown() -> void:
 	_jump_cooldown_left = jump_cooldown
+	if infinite_stamina:
+		return
 	stamina = maxf(stamina - jump_stamina_cost, 0.0)
 	if stamina <= 0.0:
 		exhausted = true # fully drained: refill the whole bar before running again
 
 
 func _update_stamina(delta: float) -> void:
+	if infinite_stamina:
+		stamina = max_stamina
+		exhausted = false
+		_sprinting = is_key(sprint_key) and is_moving()
+		return
 	_sprinting = is_key(sprint_key) and is_moving() and not exhausted and stamina > 0.0
 	# Stamina is frozen for the whole jump (after its cost); it moves again on landing.
 	if current_state and current_state.name == "Jumping":

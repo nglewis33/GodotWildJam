@@ -14,6 +14,7 @@ var _root: Control
 var _main_center: Control
 var _dev_center: Control
 var _dev_status: Label
+var _stamina_check: CheckButton
 var _resume_button: Button
 var _default_db := {}  # bus name -> volume (dB) set in the editor
 var _sliders := {}  # bus name -> HSlider
@@ -129,6 +130,14 @@ func _build_ui() -> void:
 	var dbox: VBoxContainer = devp[1]
 	_dev_center.visible = false
 
+	_stamina_check = CheckButton.new()
+	_stamina_check.text = "Infinite Stamina"
+	_stamina_check.toggled.connect(func(on: bool):
+		var pl := _player()
+		if pl:
+			pl.set("infinite_stamina", on))
+	dbox.add_child(_stamina_check)
+
 	var to_ravine := Button.new()
 	to_ravine.text = "Teleport to Ravine"
 	to_ravine.pressed.connect(_teleport_to_ravine)
@@ -183,6 +192,9 @@ func _show_dev(on: bool) -> void:
 	_dev_center.visible = on
 	if on:
 		_dev_status.text = ""
+		var pl := _player()
+		if pl:
+			_stamina_check.set_pressed_no_signal(bool(pl.get("infinite_stamina")))
 		(_dev_center.find_children("*", "Button", true, false)[0] as Button).grab_focus()
 	else:
 		_resume_button.grab_focus()

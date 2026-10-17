@@ -32,6 +32,10 @@ extends Node3D
 @export var rope_color := Color(0.4, 0.33, 0.22)
 @export var seed_value := 0
 
+## Optional: returns the ground height (world Y) at a world (X, Z) Vector2. With it,
+## every step is fitted to the real ground under it, so none sink into the terrain.
+var ground_sampler := Callable()
+
 var _rng := RandomNumberGenerator.new()
 
 
@@ -58,8 +62,30 @@ func build(a: Vector3, b: Vector3) -> void:
 	var half := length * 0.5
 	var ga := a.y - mid.y # ground height at each end
 	var gb := b.y - mid.y
-	var ya := ga + end_lift
-	var yb := gb + end_lift
+	var riser := end_lift / float(step_count + 1)
+	# Fit each end to its own ground: the deck end is as high as it needs to be so that
+	# every step (a riser apart) still stands above the terrain under it.
+	var deck_end := [a.y + end_lift, b.y + end_lift]
+	var step_ground: Array = [[], []] # per end, per step: ground height (world Y)
+	for end in 2:
+		var sgn0 := -1.0 if end == 0 else 1.0
+		var g_end: float = a.y if end == 0 else b.y
+		var need := g_end + 0.3
+		for j in range(1, step_count + 1):
+			var zc0 := sgn0 * (half + (j - 0.5) * step_depth)
+			var gj := g_end
+			if ground_sampler.is_valid():
+				gj = -INF
+				for dz in [-0.5, 0.0, 0.5]:
+					var wp := global_transform * Vector3(0.0, 0.0, zc0 + sgn0 * dz * step_depth)
+					gj = maxf(gj, float(ground_sampler.call(Vector2(wp.x, wp.z))))
+			step_ground[end].append(gj)
+			need = maxf(need, gj + riser * (j + 1))
+		deck_end[end] = need
+		if not ground_sampler.is_valid():
+			deck_end[end] = g_end + end_lift
+	var ya: float = float(deck_end[0]) - mid.y
+	var yb: float = float(deck_end[1]) - mid.y
 	var sag := length * sag_fraction
 	var half_w := deck_width * 0.5
 
@@ -105,13 +131,12 @@ func build(a: Vector3, b: Vector3) -> void:
 
 	# Steps up to the raised deck at both ends.
 	var step_boxes: Array[AABB] = []
-	var riser := end_lift / float(step_count + 1)
 	for end in 2:
 		var sgn := -1.0 if end == 0 else 1.0
-		var g := ga if end == 0 else gb
+		var d_end: float = float(deck_end[end]) - mid.y
 		for j in range(1, step_count + 1):
-			var top := g + end_lift - riser * j
-			var bottom := g - 1.2
+			var top := d_end - riser * j
+			var bottom := float(step_ground[end][j - 1]) - mid.y - 1.2
 			var h := top - bottom
 			var zc := sgn * (half + (j - 0.5) * step_depth)
 			var size := Vector3(deck_width + 0.3, h, step_depth)
