@@ -18,15 +18,17 @@ signal part_finished
 
 @export_group("Fog")
 ## Pitch blackness at the start (higher = shorter sight).
-@export var dark_density := 1.6
+@export var dark_density := 0.6
 ## Light fog around the camp once you loop back (enough to see the stranger).
-@export var camp_density := 0.35
+@export var camp_density := 0.12
 @export var dark_color := Color(0, 0, 0)
 
 @export_group("Loop")
 ## Leave this radius around the fire in the dark and you wake up at camp again.
 @export var loop_radius := 14.0
 @export var fade_time := 1.2
+## Also loop back after this many seconds in the dark, wherever you are.
+@export var loop_seconds := 30.0
 
 @export_group("Sign")
 ## Where the first sign stands: distance from the fire toward the path, and sideways.
@@ -47,6 +49,7 @@ var _sign: Node3D
 var _flashlight: Node
 var _looped := false
 var _in_dark := false
+var _dark_time := 0.0
 var _waiting_for_sign := false
 
 
@@ -96,14 +99,17 @@ func _begin() -> void:
 	atmosphere.set_mist_visible(false)
 	_set_node_shown(minimap, false)
 	_in_dark = true
+	print("Prologue: dark phase started, fire at ", camp.fire_position)
 	await _fade_to(0.0, 2.0)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if not _in_dark or _looped or player == null or camp == null:
 		return
+	_dark_time += delta
 	var d := Vector2(player.global_position.x, player.global_position.z) - camp.fire_position
-	if d.length() > loop_radius:
+	if d.length() > loop_radius or _dark_time > loop_seconds:
+		print("Prologue: looping back to camp")
 		_looped = true
 		_loop_back()
 
