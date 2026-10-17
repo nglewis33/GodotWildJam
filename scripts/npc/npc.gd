@@ -21,8 +21,29 @@ var _talking := false
 var _timer := 0.0
 
 
+## Story code switches this on when the NPC can be talked to.
+var interactable_enabled := false
+@export var interact_distance := 4.0
+
+
+func interact_ready() -> bool:
+	if not interactable_enabled:
+		return false
+	var p := get_tree().get_first_node_in_group("player") as Node3D
+	if p == null:
+		return false
+	var d := p.global_position - global_position
+	d.y = 0.0
+	return d.length() <= interact_distance
+
+
+func interact_position() -> Vector3:
+	return global_position
+
+
 func _ready() -> void:
 	add_to_group("npc")
+	add_to_group("interactable")
 	_ap = find_child("AnimationPlayer", true, false) as AnimationPlayer
 	if _ap == null:
 		push_warning("SittingNpc: no AnimationPlayer found under the Model.")

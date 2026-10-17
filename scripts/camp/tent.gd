@@ -21,6 +21,7 @@ var _toast: Label
 func _ready() -> void:
 	super._ready()
 	add_to_group("tent")
+	add_to_group("interactable")
 	var layer := CanvasLayer.new()
 	layer.layer = 20
 	add_child(layer)
@@ -56,9 +57,17 @@ func _player_near() -> Node3D:
 	return p if d.length() <= interact_distance else null
 
 
+## For Interaction: enabled and in range (the facing test happens there).
+func interact_ready() -> bool:
+	return interactable and has_items() and _player_near() != null
+
+
+func interact_position() -> Vector3:
+	return global_position
+
+
 func _can_interact() -> bool:
-	return interactable and has_items() and not get_tree().paused \
-		and not Cutscene.busy() and _player_near() != null
+	return Interaction.is_best(self)
 
 
 func _process(_delta: float) -> void:

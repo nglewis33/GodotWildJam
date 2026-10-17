@@ -23,7 +23,20 @@ var _read := false
 var _dialogue: DialogueBox
 
 
+## For Interaction: re-reading with E, once it has been read.
+func interact_ready() -> bool:
+	if not (reread_with_e and _read) or _busy:
+		return false
+	var player := get_tree().get_first_node_in_group("player") as Node3D
+	return player != null and _can_read(player)
+
+
+func interact_position() -> Vector3:
+	return (get_parent() as Node3D).global_position
+
+
 func _ready() -> void:
+	add_to_group("interactable")
 	process_mode = Node.PROCESS_MODE_ALWAYS # keep running so the cutscene survives the pause
 	_dialogue = DialogueBox.new()
 	add_child(_dialogue)
@@ -70,7 +83,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_E:
 		var player := get_tree().get_first_node_in_group("player") as Node3D
-		if player and _can_read(player):
+		if player and _can_read(player) and Interaction.is_best(self):
 			_run_cutscene(player)
 
 

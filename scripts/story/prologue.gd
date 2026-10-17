@@ -147,6 +147,8 @@ func _begin() -> void:
 		camera.snap_to_target()
 		await _fade_to(0.0, 2.0)
 		_waiting_for_talk = true
+		camp.npc.interact_distance = talk_distance
+		camp.npc.interactable_enabled = true
 		return
 	_set_camp_shown(false)
 	atmosphere.set_fog(dark_density, dark_color)
@@ -161,9 +163,7 @@ func _process(delta: float) -> void:
 	if player == null or camp == null or camp.npc == null:
 		return
 	if _waiting_for_talk:
-		var to_npc := player.global_position - camp.npc.global_position
-		to_npc.y = 0.0
-		var near := to_npc.length() <= talk_distance and not get_tree().paused
+		var near := Interaction.best(get_tree()) == camp.npc
 		_hint.text = "Press E to interact with %s" % camp.npc.display_name
 		_hint.modulate.a = 1.0 if near else 0.0
 	if _leashed and not _in_dark and _looped and not _respawning and not get_tree().paused \
@@ -198,10 +198,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not _waiting_for_talk or get_tree().paused or Cutscene.busy():
 		return
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_E:
-		var d := player.global_position - camp.npc.global_position
-		d.y = 0.0
-		if d.length() <= talk_distance:
+		if Interaction.is_best(camp.npc):
 			_waiting_for_talk = false
+			camp.npc.interactable_enabled = false
 			_hint.modulate.a = 0.0
 			get_viewport().set_input_as_handled()
 			_stranger_scene()
