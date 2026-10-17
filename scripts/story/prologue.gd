@@ -42,10 +42,15 @@ signal part_finished
 @export var sign_side := 2.5
 
 @export_group("Cutscene Camera")
-## How far down the path (from the fire) the camera stands to look along it.
-@export var path_view_distance := 6.0
+## How far along the path (from its start) the camera stands to look along it.
+@export var path_view_distance := 8.0
+## How far further along the path it looks, and how high the camera is above the ground.
+@export var path_look_ahead := 25.0
+@export var path_view_height := 1.2
 ## How far in front of the sign the camera stands to look at it.
 @export var sign_view_distance := 2.4
+## Camera height above the sign's base.
+@export var sign_view_height := 1.1
 
 @export_group("Dialogue")
 @export_multiline var line_greeting := "Thank the heavens! Someone else is here to share in my misery. I have been lost in these woods for quite an age..."
@@ -229,18 +234,32 @@ func _stranger_scene() -> void:
 
 ## Camera spot and look-at point for staring down the path.
 func _path_view() -> Array:
-	var out := camp.out_direction
-	var a := camp.fire_position + out * path_view_distance
-	var b := camp.fire_position + out * (path_view_distance + 25.0)
-	return [Vector3(a.x, camp.ground_height(a, 0.0) + 2.0, a.y),
-			Vector3(b.x, camp.ground_height(b, 0.0) + 1.2, b.y)]
+	var a := _route_point(path_view_distance)
+	var b := _route_point(path_view_distance + path_look_ahead)
+	return [Vector3(a.x, camp.ground_height(a, 0.0) + path_view_height, a.y),
+			Vector3(b.x, camp.ground_height(b, 0.0) + 0.6, b.y)]
+
+
+## A point on the real (curving) main path, this far along from its start.
+func _route_point(dist: float) -> Vector2:
+	var route: PackedVector2Array = camp.path_generator.main_route
+	if route.size() < 2:
+		return camp.fire_position + camp.out_direction * dist
+	var left := dist
+	for i in route.size() - 1:
+		var seg := route[i].distance_to(route[i + 1])
+		if left <= seg and seg > 0.0:
+			return route[i].lerp(route[i + 1], left / seg)
+		left -= seg
+	return route[route.size() - 1]
 
 
 ## Camera spot (in front of the sign) and look-at point for reading it.
 func _sign_view() -> Array:
 	var center := _sign.global_position + Vector3.UP * 1.0
 	var front := Vector3(-camp.out_direction.x, 0.0, -camp.out_direction.y)
-	return [center + front * sign_view_distance + Vector3.UP * 0.4, center]
+	var base := _sign.global_position.y
+	return [Vector3(center.x, base + sign_view_height, center.z) + front * sign_view_distance, center]
 
 
 func _place_first_sign() -> void:
