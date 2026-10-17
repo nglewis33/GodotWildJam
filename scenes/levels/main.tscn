@@ -245,11 +245,15 @@ auto_spawn = false
 
 [node name="Prologue" type="Node" parent="." unique_id=218706630 node_paths=PackedStringArray("camp", "player", "camera", "atmosphere", "scatter", "sign_spawner", "minimap")]
 script = ExtResource("90_prologue")
-sign_feature = SubResource("StartSign")
 camp = NodePath("../CampSite")
 player = NodePath("../Player")
 camera = NodePath("../FollowCamera")
 atmosphere = NodePath("../Atmosphere")
 scatter = NodePath("../Scatter")
 sign_spawner = NodePath("../SignSpawner")
+sign_feature = SubResource("StartSign")
 minimap = NodePath("../Minimap")
+loop_radius = 28.0
+fade_time = 2.2
+sign_view_height = 0.0
+sign_look_height = 0.0
