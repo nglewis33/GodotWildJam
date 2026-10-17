@@ -74,7 +74,7 @@ signal part_finished
 @export_group("Dialogue")
 @export_multiline var line_greeting := "Thank the heavens! Someone else is here to share in my misery. I have been lost in these woods for quite an age..."
 @export_multiline var line_path := "You see that path? Whenever I try to follow the path, something nefarious always stops me from continuing, and I must return to this here camp"
-@export_multiline var line_sign := "You see that sign? Those signs are littered across the forest. If you shine a flashlight on it, a truth of the forest will appear. Funny thing, the truth... Before you read the sign, its words are a lie. You don't believe me, do you? Here, take this flashlight and shine in on that there sign"
+@export_multiline var line_sign := "You see that sign? Those signs are littered across the forest. If you shine a flashlight on it, a truth of the forest will appear. Funny thing, the truth... Before you read the sign, its words are a lie. You don't believe me, do you? Here, take this flashlight, walk up to that there sign, and shine it on it"
 @export_multiline var line_after := "The sign wants you to walk the path. But, you see, the path is too dangerous. Things are out to get me. So, I tried going through the woods, and found more signs. These signs held strange powers that altered the forest and path. Eventually, the signs shifted their message and started threatening me. They told me to get back on the path, or else. If I ignored them for too long, I found myself back at the main camp. What a pain! But, now that you're here. We can try something new. I'll stay on the path, and you'll look around the forest for these signs with strange powers. I don't know if this will work, but maybe we can both survive these woods. So what do you say, partner? Should we work together on this?"
 @export_multiline var line_tent := "Glad you're willing to help. You didn't have much of a choice, but I still appreciate it. In that there tent is a map. Whenever you find something important, you can mark it on the map, so that we dont get lost. Go ahead and grab it, as soon as you do, ill start walking."
 @export var answers: Array[String] = ["Yes", "Yes"]
@@ -301,7 +301,7 @@ func _set_minimap_shown(on: bool) -> void:
 	if minimap == null:
 		return
 	_set_node_shown(minimap, on)
-	minimap.process_mode = Node.PROCESS_MODE_INHERIT if on else Node.PROCESS_MODE_DISABLED
+	minimap.process_mode = Node.PROCESS_MODE_ALWAYS if on else Node.PROCESS_MODE_DISABLED # it must keep running while the game is paused for the big map
 
 
 ## Camera spot and look-at point for facing the stranger (from the player's side).
