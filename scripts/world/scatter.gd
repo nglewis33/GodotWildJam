@@ -18,6 +18,9 @@ extends Node3D
 @export var clearing_radius := 50.0
 ## If set, nothing is placed on or near the generated dirt path.
 @export var path_generator: PathGenerator
+## If set, nothing is placed in or next to the ravine.
+@export var ravine: Ravine
+@export var ravine_clearance := 3.0
 ## Extra gap kept between the path edge and objects.
 @export var path_clearance := 0.5
 
@@ -268,6 +271,8 @@ func _plan(entries: Array, target: int, label: String) -> Array:
 			if p.distance_to(clear_center) < clearing_radius + r or not _is_free(p, r):
 				continue
 			if path_generator and path_generator.distance_to_path(p) < r + path_clearance:
+				continue
+			if ravine and ravine.blocks(p, r + ravine_clearance):
 				continue
 			var hit := _ground(space, p)
 			if hit.is_empty():

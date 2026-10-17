@@ -107,6 +107,7 @@ signal generated
 var start_position := Vector2.ZERO
 var checkpoints: Array[Vector2] = []
 var end_position := Vector2.ZERO
+var main_route := PackedVector2Array() ## Polyline of the main path (start to end), without forks.
 var _segments: Array = [] # [Vector2 a, Vector2 b, float radius]
 var _hash := {}
 var _rng := RandomNumberGenerator.new()
@@ -176,6 +177,7 @@ func generate() -> void:
 	end_position = _pick_end(center, size, -s, inner)
 
 	var main_pts := _plan_route(center, size, inner)
+	main_route = main_pts
 	var polylines: Array = [{"pts": main_pts, "width": path_width}]
 	var origins: Array[Vector2] = []
 	for i in fork_count:

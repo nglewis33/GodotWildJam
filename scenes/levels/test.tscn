@@ -4,6 +4,8 @@
 [ext_resource type="PackedScene" uid="uid://fq8tny6kq1j6" path="res://scenes/player/Player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://scenes/player/Camera.tscn" id="3_cam"]
 [ext_resource type="Script" uid="uid://cwohh43x4he0k" path="res://scripts/world/ground_grid.gd" id="4_ground"]
+[ext_resource type="Script" path="res://scripts/world/ravine.gd" id="80_ravine"]
+[ext_resource type="Script" path="res://scripts/world/suspension_bridge.gd" id="81_bridge"]
 [ext_resource type="Script" uid="uid://cep0s6eo5vnwf" path="res://scripts/world/scatter.gd" id="5_scatter"]
 [ext_resource type="Script" uid="uid://br1vmthe2o2yj" path="res://scripts/world/scatter_entry.gd" id="6_0w447"]
 [ext_resource type="PackedScene" uid="uid://cqtdve2jriri5" path="res://assets/forest/extracted/PP_Birch_Tree.tscn" id="7_s3ppv"]
@@ -158,7 +160,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.322942, 0.48, 0.541608)
 target = NodePath("../Player")
 free_speed = 5.0
 
-[node name="Scatter" type="Node3D" parent="." unique_id=826314366 node_paths=PackedStringArray("ground_grid", "path_generator")]
+[node name="Scatter" type="Node3D" parent="." unique_id=826314366 node_paths=PackedStringArray("ground_grid", "path_generator", "ravine")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.322942, 2.80186, 0.591608)
 script = ExtResource("5_scatter")
 hard_objects = Array[ExtResource("6_0w447")]([SubResource("Resource_ff7wo"), SubResource("Resource_nrdrc"), SubResource("Resource_w0coa"), SubResource("Resource_6m38a"), SubResource("Resource_6rk7q"), SubResource("Resource_tbp23"), SubResource("Resource_uw1rg")])
@@ -166,6 +168,7 @@ soft_objects = Array[ExtResource("6_0w447")]([SubResource("Resource_tmnu4"), Sub
 ground_grid = NodePath("../Ground")
 clearing_radius = 10.0
 path_generator = NodePath("../PathGenerator")
+ravine = NodePath("../Ravine")
 hard_coverage = 0.3
 max_objects = 60000
 ray_height = 5.0
@@ -216,6 +219,14 @@ fork_width_scale = 1.0
 start_radius = 8.0
 end_radius = 8.0
 path_color = Color(0.48970687, 0.33671996, 0.20198193, 1)
+
+[node name="Ravine" type="Node3D" parent="." node_paths=PackedStringArray("ground_grid", "path_generator")]
+script = ExtResource("80_ravine")
+ground_grid = NodePath("../Ground")
+path_generator = NodePath("../PathGenerator")
+
+[node name="Bridge" type="Node3D" parent="Ravine"]
+script = ExtResource("81_bridge")
 
 [node name="CampSite" type="Node" parent="." unique_id=1648144078 node_paths=PackedStringArray("path_generator")]
 script = ExtResource("71_camp")

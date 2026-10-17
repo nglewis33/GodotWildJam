@@ -29,6 +29,7 @@ var _spacing := Vector2.ZERO  # distance between neighboring tile origins
 var _tile_center := Vector2.ZERO  # tile bounding-box center relative to its origin
 var _origin_offset := Vector2.ZERO  # where tile (0, 0) sits relative to this node
 var _tiles: Array[Node] = []
+var _tile_at := {}  # Vector2i -> tile node
 var _shape_cache := {}  # Mesh -> shared collision shape
 
 
@@ -75,6 +76,7 @@ func generate() -> void:
 				0.0,
 				_origin_offset.y + j * _spacing.y)
 			_tiles.append(tile)
+			_tile_at[Vector2i(i, j)] = tile
 			_limit_view(tile)
 			_add_collision(tile)
 
@@ -86,6 +88,42 @@ func clear() -> void:
 			remove_child(t)
 			t.free()
 	_tiles.clear()
+	_tile_at.clear()
+
+
+## Distance between neighboring tile centers (X, Z).
+func get_spacing() -> Vector2:
+	return _spacing
+
+
+## How far a tile's mesh sticks out past its own cell on each side (X, Z).
+func get_trim() -> Vector2:
+	return (tile_size - _spacing) * 0.5
+
+
+## World (X, Z) of the middle of a tile cell.
+func cell_center(c: Vector2i) -> Vector2:
+	return Vector2(global_position.x, global_position.z) + _origin_offset + Vector2(c.x * _spacing.x, c.y * _spacing.y) + _tile_center
+
+
+## The cell under a world (X, Z) point, clamped to the grid.
+func cell_at(p: Vector2) -> Vector2i:
+	if _spacing.x <= 0.0 or _spacing.y <= 0.0:
+		return Vector2i.ZERO
+	var v := (p - Vector2(global_position.x, global_position.z) - _origin_offset - _tile_center) / _spacing
+	return Vector2i(clampi(roundi(v.x), 0, grid_size.x - 1), clampi(roundi(v.y), 0, grid_size.y - 1))
+
+
+## Deletes every tile from cell c0 to cell c1 (inclusive), making a hole in the map.
+func remove_cells(c0: Vector2i, c1: Vector2i) -> void:
+	for i in range(mini(c0.x, c1.x), maxi(c0.x, c1.x) + 1):
+		for j in range(mini(c0.y, c1.y), maxi(c0.y, c1.y) + 1):
+			var t = _tile_at.get(Vector2i(i, j))
+			if t != null and is_instance_valid(t):
+				_tiles.erase(t)
+				remove_child(t)
+				t.free()
+			_tile_at.erase(Vector2i(i, j))
 
 
 ## Total map size in world units (X, Z).
