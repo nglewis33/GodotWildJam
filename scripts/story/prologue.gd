@@ -285,6 +285,12 @@ func _on_tent_looted(_items: Array) -> void:
 	_set_minimap_shown(true)
 	if controls_hint:
 		controls_hint.set_hint_visible("M", true)
+	# "As soon as you grab it, I'll start walking."
+	if camp.npc and camp.path_generator:
+		var guide := NpcGuide.new()
+		guide.name = "NpcGuide"
+		guide.setup(camp.npc, camp.path_generator, player)
+		add_child(guide)
 	part_finished.emit()
 
 

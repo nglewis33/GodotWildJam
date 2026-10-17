@@ -21,6 +21,9 @@ var _talking := false
 var _timer := 0.0
 
 
+## Fired when the player presses E while facing him (and he is interactable).
+signal interacted
+
 ## Story code switches this on when the NPC can be talked to.
 var interactable_enabled := false
 @export var interact_distance := 4.0
@@ -54,6 +57,21 @@ func _ready() -> void:
 		else:
 			push_warning("SittingNpc: animation '%s' not found." % clip)
 	set_talking(false)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo \
+			and event.physical_keycode == KEY_E and interact_ready() and Interaction.is_best(self):
+		get_viewport().set_input_as_handled()
+		interacted.emit()
+
+
+## Plays a looping animation by name (e.g. "Walk", "Idle").
+func play_loop(clip: String) -> void:
+	if _ap and _ap.has_animation(clip):
+		_ap.get_animation(clip).loop_mode = Animation.LOOP_LINEAR
+		if _ap.current_animation != clip:
+			_ap.play(clip, blend)
 
 
 ## Gets up from the log: stops the sitting animations and stands idle.

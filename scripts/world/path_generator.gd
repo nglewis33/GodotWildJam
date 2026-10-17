@@ -112,6 +112,9 @@ var start_position := Vector2.ZERO
 var checkpoints: Array[Vector2] = []
 var end_position := Vector2.ZERO
 var main_route := PackedVector2Array() ## Polyline of the main path (start to end), without forks.
+## Every fork: {"pts": PackedVector2Array starting at its junction, "parent": polyline index it
+## leaves (0 = main route, k = forks[k-1]), "at": index of the junction in that polyline's points}.
+var forks: Array[Dictionary] = []
 var _segments: Array = [] # [Vector2 a, Vector2 b, float radius]
 var _hash := {}
 var _rng := RandomNumberGenerator.new()
@@ -189,12 +192,14 @@ func generate() -> void:
 	# The ravine is carved now, before any forks exist, so forks can steer clear of it.
 	if ravine:
 		ravine.carve()
+	forks.clear()
 	var polylines: Array = [{"pts": main_pts, "width": path_width}]
 	var origins: Array[Vector2] = []
 	for i in fork_count:
 		var f := _make_fork(polylines, origins, inner)
 		if not f.is_empty():
 			polylines.append(f)
+			forks.append(f)
 
 	for pl in polylines:
 		var pts: PackedVector2Array = pl.pts
@@ -205,8 +210,19 @@ func generate() -> void:
 	_build_hash()
 
 	_make_paint(center, size)
+	var fork_lengths := []
+	for f in forks:
+		fork_lengths.append(snappedf(_poly_length(f.pts), 0.1))
+	print("PathGenerator: main route %.0f units long, fork lengths %s" % [_poly_length(main_pts), fork_lengths])
 	print("PathGenerator: start %s, end %s, %d checkpoints, %d forks." % [start_position, end_position, checkpoints.size(), polylines.size() - 1])
 	generated.emit()
+
+
+func _poly_length(pts: PackedVector2Array) -> float:
+	var l := 0.0
+	for i in range(1, pts.size()):
+		l += pts[i].distance_to(pts[i - 1])
+	return l
 
 
 # --- Layout -----------------------------------------------------------------
@@ -511,7 +527,7 @@ func _make_fork(polylines: Array, origins: Array[Vector2], inner: Rect2) -> Dict
 		if out.size() < 3:
 			continue
 		origins.append(origin)
-		return {"pts": out, "width": path_width * fork_width_scale}
+		return {"pts": out, "width": path_width * fork_width_scale, "parent": c[0], "at": c[1]}
 	return {}
 
 
