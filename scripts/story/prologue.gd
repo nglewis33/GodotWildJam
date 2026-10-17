@@ -57,6 +57,8 @@ var _looped := false
 var _in_dark := false
 var _dark_time := 0.0
 var _waiting_for_talk := false
+var _leashed := true ## Can't wander off until the first sign has been read.
+var _respawning := false
 var _waiting_for_sign := false
 
 
@@ -123,7 +125,15 @@ func _begin() -> void:
 
 
 func _process(delta: float) -> void:
-	if not _in_dark or _looped or player == null or camp == null:
+	if player == null or camp == null or camp.npc == null:
+		return
+	if _leashed and not _in_dark and _looped and not _respawning and not get_tree().paused \
+			and bool(player.get("input_enabled")):
+		var away := Vector2(player.global_position.x, player.global_position.z) - camp.fire_position
+		if away.length() > loop_radius:
+			_respawn_at_camp()
+		return
+	if not _in_dark or _looped:
 		return
 	_dark_time += delta
 	var d := Vector2(player.global_position.x, player.global_position.z) - camp.fire_position
@@ -131,6 +141,18 @@ func _process(delta: float) -> void:
 		print("Prologue: looping back to camp")
 		_looped = true
 		_loop_back()
+
+
+## Walked too far before the story allows it: back to camp, facing the stranger.
+func _respawn_at_camp() -> void:
+	_respawning = true
+	_set_player_input(false)
+	await _fade_to(1.0, fade_time)
+	_place_player_by_log()
+	camera.snap_to_target()
+	await _fade_to(0.0, fade_time)
+	_set_player_input(true)
+	_respawning = false
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -231,6 +253,7 @@ func on_first_sign_message(cam: Camera3D) -> void:
 
 
 func on_first_sign_done() -> void:
+	_leashed = false
 	if _waiting_for_sign:
 		_waiting_for_sign = false
 		_after_sign()
