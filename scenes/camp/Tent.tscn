@@ -1,6 +1,6 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://scripts/camp/camp_prop.gd" id="1_script"]
+[ext_resource type="Script" path="res://scripts/camp/tent.gd" id="1_script"]
 [ext_resource type="PackedScene" path="res://assets/models/camp/Tent/scene.gltf" id="2_model"]
 
 [node name="Tent" type="Node3D"]

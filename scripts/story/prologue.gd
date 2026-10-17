@@ -66,11 +66,17 @@ signal part_finished
 @export var npc_view_height := 1.5
 @export var npc_look_height := 1.4
 
+@export_group("Tent Camera")
+@export var tent_view_distance := 5.0
+@export var tent_view_height := 1.8
+@export var tent_look_height := 1.0
+
 @export_group("Dialogue")
 @export_multiline var line_greeting := "Thank the heavens! Someone else is here to share in my misery. I have been lost in these woods for quite an age..."
 @export_multiline var line_path := "You see that path? Whenever I try to follow the path, something nefarious always stops me from continuing, and I must return to this here camp"
 @export_multiline var line_sign := "You see that sign? Those signs are littered across the forest. If you shine a flashlight on it, a truth of the forest will appear. Funny thing, the truth... Before you read the sign, its words are a lie. You don't believe me, do you? Here, take this flashlight and shine in on that there sign"
 @export_multiline var line_after := "The sign wants you to walk the path. But, you see, the path is too dangerous. Things are out to get me. So, I tried going through the woods, and found more signs. These signs held strange powers that altered the forest and path. Eventually, the signs shifted their message and started threatening me. They told me to get back on the path, or else. If I ignored them for too long, I found myself back at the main camp. What a pain! But, now that you're here. We can try something new. I'll stay on the path, and you'll look around the forest for these signs with strange powers. I don't know if this will work, but maybe we can both survive these woods. So what do you say, partner? Should we work together on this?"
+@export_multiline var line_tent := "Glad you're willing to help. You didn't have much of a choice, but I still appreciate it. In that there tent is a map. Whenever you find something important, you can mark it on the map, so that we dont get lost. Go ahead and grab it, as soon as you do, ill start walking."
 @export var answers: Array[String] = ["Yes", "Yes"]
 
 var _dialogue: DialogueBox
@@ -128,10 +134,12 @@ func _begin() -> void:
 	if _flashlight:
 		_flashlight.call("set_locked", true)
 	_place_first_sign() # can't be read until the flashlight is handed over
+	if camp.tent:
+		camp.tent.interactable = false # opened only after the stranger asks
 	# Nothing but the camp is visible, and nothing is solid but the ground.
 	_set_world_hidden(true)
 	if not start_with_dark_walk:
-		_set_node_shown(minimap, false)
+		_set_minimap_shown(false)
 		atmosphere.set_fog(camp_density, dark_color)
 		atmosphere.set_mist_visible(false)
 		_looped = true
@@ -143,7 +151,7 @@ func _begin() -> void:
 	_set_camp_shown(false)
 	atmosphere.set_fog(dark_density, dark_color)
 	atmosphere.set_mist_visible(false)
-	_set_node_shown(minimap, false)
+	_set_minimap_shown(false)
 	_in_dark = true
 	print("Prologue: dark phase started, fire at ", camp.fire_position)
 	await _fade_to(0.0, 2.0)
@@ -273,6 +281,30 @@ func _route_point(dist: float) -> Vector2:
 	return route[route.size() - 1]
 
 
+func _on_tent_looted(_items: Array) -> void:
+	# The map: the minimap appears and its key reminder is added.
+	_set_minimap_shown(true)
+	if controls_hint:
+		controls_hint.set_hint_visible("M", true)
+	part_finished.emit()
+
+
+## Camera spot (in front of the tent's entrance, which faces the fire) and look-at point.
+func _tent_view() -> Array:
+	var t := camp.tent.global_position
+	var to_fire := Vector3(camp.fire_position.x - t.x, 0.0, camp.fire_position.y - t.z).normalized()
+	var pos := t + to_fire * tent_view_distance
+	pos.y = t.y + tent_view_height
+	return [pos, t + Vector3.UP * tent_look_height]
+
+
+func _set_minimap_shown(on: bool) -> void:
+	if minimap == null:
+		return
+	_set_node_shown(minimap, on)
+	minimap.process_mode = Node.PROCESS_MODE_INHERIT if on else Node.PROCESS_MODE_DISABLED
+
+
 ## Camera spot and look-at point for facing the stranger (from the player's side).
 func _npc_view() -> Array:
 	var np := camp.npc.global_position
@@ -325,7 +357,7 @@ func on_first_sign_message(cam: Camera3D) -> void:
 	fw.tween_callback(func():
 		_set_world_hidden(false)
 		atmosphere.set_mist_visible(true)
-		_set_node_shown(minimap, true))
+	)
 	fw.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	fw.tween_method(func(t: float): atmosphere.set_fog(lerpf(lift_peak_density, d1, t), c0.lerp(c1, t)), 0.0, 1.0, lift_time)
 	await tw.finished
@@ -351,10 +383,16 @@ func _after_sign() -> void:
 	await get_tree().create_timer(0.5).timeout
 	var choice := await _dialogue.ask(line_after, answers)
 	print("Prologue: answered option ", choice)
+	var tv := _tent_view()
+	await camera.fly_to(tv[0], tv[1], 2.0)
+	await get_tree().create_timer(0.4).timeout
+	await _dialogue.show_text(line_tent)
 	await camera.release(1.6)
 	_set_player_input(true)
 	Cutscene.finish()
-	part_finished.emit()
+	if camp.tent:
+		camp.tent.interactable = true
+		camp.tent.looted.connect(_on_tent_looted, CONNECT_ONE_SHOT)
 
 
 # --- Helpers --------------------------------------------------------------------

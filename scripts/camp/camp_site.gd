@@ -44,6 +44,7 @@ signal built
 var spawned: Array[Node3D] = []
 var log_node: Node3D
 var npc: SittingNpc
+var tent: Tent
 var fire_position := Vector2.ZERO
 var out_direction := Vector2.RIGHT
 
@@ -66,7 +67,7 @@ func _ready() -> void:
 	var tent_side := right if tent_on_right else -right
 
 	_place(campfire_scene, c, c + out_dir, 0.0)
-	_place(tent_scene, c + tent_side * tent_distance, c, tent_yaw_offset_degrees)
+	tent = _place(tent_scene, c + tent_side * tent_distance, c, tent_yaw_offset_degrees) as Tent
 	var log_pos := c - tent_side * log_distance
 	var log_props := {}
 	if log_size_override > 0.0:
