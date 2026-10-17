@@ -15,6 +15,8 @@ signal part_finished
 @export var sign_feature: SignFeature
 ## Hidden until the fog lifts.
 @export var minimap: CanvasLayer
+## Key reminders along the bottom; "F" is revealed when the flashlight is handed over.
+@export var controls_hint: ControlsHint
 
 @export_group("Fog")
 ## Pitch blackness at the start (higher = shorter sight).
@@ -241,6 +243,8 @@ func _stranger_scene() -> void:
 	# He hands over the flashlight.
 	if _flashlight:
 		_flashlight.call("set_locked", false)
+	if controls_hint:
+		controls_hint.set_hint_visible("F", true)
 	_show_hint("Press F to use the flashlight")
 	_set_player_input(true)
 	_waiting_for_sign = true

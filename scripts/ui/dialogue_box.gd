@@ -31,6 +31,8 @@ var _line_starts := PackedInt32Array()
 var _choices: Array = []
 var _choice_index := 0
 var _t := 0.0
+var _lh := 0.0
+var _ellipsis: Label
 
 
 func _init() -> void:
@@ -65,6 +67,13 @@ func _init() -> void:
 	_label.add_theme_color_override("default_color", Color.WHITE)
 	_label.add_theme_font_size_override("normal_font_size", font_size)
 	_clip.add_child(_label)
+	# "..." after a sentence that is cut off at the end of a page.
+	_ellipsis = Label.new()
+	_ellipsis.text = "..."
+	_ellipsis.add_theme_font_size_override("font_size", font_size)
+	_ellipsis.add_theme_color_override("font_color", Color.WHITE)
+	_ellipsis.visible = false
+	_clip.add_child(_ellipsis)
 	# Bottom row: white down-pointing triangle with "E" next to it.
 	_arrow_row = HBoxContainer.new()
 	_arrow_row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -120,6 +129,7 @@ func _present(text: String) -> void:
 	_label.text = text
 	_label.visible_characters = 0
 	_label.position.y = 0.0
+	_ellipsis.visible = false
 	_arrow_row.modulate.a = 0.0
 	_progress = 0.0
 	_total = text.length()
@@ -140,7 +150,9 @@ func _present(text: String) -> void:
 		if last_line >= _line_count - 1:
 			await _advance
 			break
+		_show_ellipsis_if_cut(last_line)
 		await _advance
+		_ellipsis.visible = false
 		_mode = Mode.SCROLLING
 		_arrow_row.modulate.a = 0.0
 		await _scroll_to_line(last_line)
@@ -171,7 +183,22 @@ func _measure() -> void:
 	var lh := font_size * 1.5
 	if _line_count > 1:
 		lh = _label.get_line_offset(1) - _label.get_line_offset(0)
+	_lh = lh
 	_clip.custom_minimum_size.y = lh * visible_lines + 4.0
+
+
+func _show_ellipsis_if_cut(line: int) -> void:
+	var s := _line_starts[line]
+	var e := _line_end(line)
+	var shown := _label.text.substr(s, e - s).strip_edges(false, true)
+	if shown.is_empty() or shown[shown.length() - 1] in ".!?…\"')":
+		return
+	var font := _label.get_theme_font("normal_font")
+	var w := font.get_string_size(shown, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	# The page's last line is always the clip's bottom row once the text has scrolled.
+	var row := mini(line, visible_lines - 1) if line < visible_lines else visible_lines - 1
+	_ellipsis.position = Vector2(w + 1.0, row * _lh)
+	_ellipsis.visible = true
 
 
 func _line_end(line: int) -> int:
