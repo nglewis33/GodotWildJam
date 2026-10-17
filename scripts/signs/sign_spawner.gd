@@ -1,3 +1,4 @@
+class_name SignSpawner
 extends Node
 ## Spawns one sign per feature in front of the player at the start.
 
