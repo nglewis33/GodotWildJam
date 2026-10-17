@@ -44,6 +44,16 @@ signal built ## Walls and bridge exist.
 @export var crag_amount := 3.0
 @export var lip_color := Color(0.07, 0.075, 0.05)
 
+@export_group("Depth look")
+## Soft light on the upper cliff so you can read the drop (the rest fades to black).
+@export var glow_color := Color(0.22, 0.27, 0.42)
+@export var glow_depth := 28.0
+## Drifting haze layers inside the pit.
+@export var mist_enabled := true
+@export var mist_color := Color(0.3, 0.36, 0.5, 0.32)
+## Highlight along the very edge of the rim.
+@export var rim_color := Color(0.38, 0.4, 0.48)
+
 @export_group("Walls")
 ## How far the cliffs drop. Keep it deeper than the player's fall_limit.
 @export var depth := 120.0
@@ -88,6 +98,7 @@ func _ready() -> void:
 		await get_tree().physics_frame
 	_make_samples()
 	_build_walls()
+	_build_mist()
 	if build_bridge:
 		_build_bridge()
 	built.emit()
@@ -335,6 +346,7 @@ func _build_walls() -> void:
 	var ln := PackedVector3Array()
 	var luv := PackedVector2Array()
 	var li := PackedInt32Array()
+	var lc := PackedColorArray()
 	for i in count:
 		var smp: Dictionary = _samples[i]
 		var p: Vector2 = smp["p"]
@@ -348,6 +360,8 @@ func _build_walls() -> void:
 		ln.append(Vector3.UP)
 		luv.append(p)
 		luv.append(inner)
+		lc.append(Color(0, 0, 0, 1))
+		lc.append(Color(1, 0, 0, 1))
 	for i in count:
 		var a := i * 2
 		var b := ((i + 1) % count) * 2
@@ -358,6 +372,7 @@ func _build_walls() -> void:
 	larrays[Mesh.ARRAY_VERTEX] = lv
 	larrays[Mesh.ARRAY_NORMAL] = ln
 	larrays[Mesh.ARRAY_TEX_UV] = luv
+	larrays[Mesh.ARRAY_COLOR] = lc
 	larrays[Mesh.ARRAY_INDEX] = li
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, larrays)
 	mesh.surface_set_material(0, _wall_material())
@@ -401,6 +416,8 @@ render_mode cull_disabled;
 uniform vec3 rock_light : source_color;
 uniform vec3 rock_dark : source_color;
 uniform float fade_depth = 40.0;
+uniform vec3 glow_color : source_color;
+uniform float glow_depth = 28.0;
 
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -417,6 +434,8 @@ void fragment() {
 	vec3 rock = mix(rock_dark, rock_light, clamp(n * 0.7 + strata * 0.5, 0.0, 1.0));
 	float fade = 1.0 - smoothstep(0.0, fade_depth, UV.y);
 	ALBEDO = rock * fade;
+	float glow = 1.0 - smoothstep(0.0, glow_depth, UV.y);
+	EMISSION = glow_color * glow * (0.3 + 0.7 * n);
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 }
@@ -426,6 +445,8 @@ void fragment() {
 	mat.set_shader_parameter("rock_light", rock_color_light)
 	mat.set_shader_parameter("rock_dark", rock_color_dark)
 	mat.set_shader_parameter("fade_depth", fade_depth)
+	mat.set_shader_parameter("glow_color", glow_color)
+	mat.set_shader_parameter("glow_depth", glow_depth)
 	return mat
 
 
@@ -435,6 +456,11 @@ func _lip_material() -> ShaderMaterial:
 shader_type spatial;
 render_mode cull_disabled;
 uniform vec3 lip_color : source_color;
+uniform vec3 rim_color : source_color;
+uniform sampler2D path_mask : filter_linear_mipmap, repeat_disable, hint_default_transparent;
+uniform vec2 path_origin;
+uniform vec2 path_extent = vec2(1.0);
+uniform vec4 path_tint : source_color = vec4(0.4, 0.3, 0.2, 1.0);
 
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -447,7 +473,15 @@ float vnoise(vec2 p) {
 }
 void fragment() {
 	float n = vnoise(UV * 1.1) * 0.6 + vnoise(UV * 4.5) * 0.4;
-	ALBEDO = lip_color * (0.6 + 0.9 * n);
+	vec3 col = lip_color * (0.6 + 0.9 * n);
+	vec2 puv = (UV - path_origin) / path_extent;
+	float inside = step(0.0, puv.x) * step(puv.x, 1.0) * step(0.0, puv.y) * step(puv.y, 1.0);
+	float pa = texture(path_mask, puv).a * inside * path_tint.a;
+	col = mix(col, path_tint.rgb, pa);
+	float rim = smoothstep(0.7, 1.0, COLOR.r);
+	col = mix(col, rim_color * (0.7 + 0.6 * n), rim * 0.85);
+	ALBEDO = col;
+	EMISSION = rim_color * 0.35 * rim;
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 }
@@ -455,7 +489,67 @@ void fragment() {
 	var mat := ShaderMaterial.new()
 	mat.shader = sh
 	mat.set_shader_parameter("lip_color", lip_color)
+	mat.set_shader_parameter("rim_color", rim_color)
+	if path_generator:
+		path_generator.apply_paint_to(mat)
 	return mat
+
+
+const MIST_SHADER := """
+shader_type spatial;
+render_mode unshaded, blend_mix, depth_draw_never, cull_disabled;
+uniform vec4 mist_color : source_color;
+uniform float strength = 1.0;
+varying vec3 wpos;
+
+float hash(vec2 p) {
+	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+float vnoise(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+}
+void vertex() {
+	wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+}
+void fragment() {
+	vec2 p = wpos.xz * 0.05 + vec2(TIME * 0.01, TIME * 0.006);
+	float n = vnoise(p) * 0.6 + vnoise(p * 2.3 + 7.0) * 0.4;
+	ALBEDO = mist_color.rgb;
+	ALPHA = mist_color.a * strength * smoothstep(0.25, 0.85, n);
+}
+"""
+
+
+## A few hazy layers at different depths so the pit reads as deep, not a flat black square.
+func _build_mist() -> void:
+	if not mist_enabled or _samples.is_empty():
+		return
+	var avg_y := 0.0
+	for smp in _samples:
+		avg_y += float(smp["y"])
+	avg_y /= float(_samples.size())
+	var c := hole.get_center()
+	var sh := Shader.new()
+	sh.code = MIST_SHADER
+	var layers := [[7.0, 1.0], [17.0, 0.8], [34.0, 0.6]]
+	for i in layers.size():
+		var mat := ShaderMaterial.new()
+		mat.shader = sh
+		mat.set_shader_parameter("mist_color", mist_color)
+		mat.set_shader_parameter("strength", float(layers[i][1]))
+		var pm := PlaneMesh.new()
+		pm.size = hole.size
+		var mi := MeshInstance3D.new()
+		mi.name = "PitMist%d" % i
+		mi.mesh = pm
+		mi.material_override = mat
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.top_level = true
+		add_child(mi)
+		mi.global_position = Vector3(c.x, avg_y - float(layers[i][0]), c.y)
 
 
 # --- Bridge -------------------------------------------------------------------
@@ -503,3 +597,45 @@ func _build_bridge() -> void:
 		add_child(bridge)
 	var ends := _bridge_ends()
 	bridge.build(ends[0], ends[1])
+	_connect_path(ends, bridge.get_approach_length())
+
+
+## Redraws the path from where the main path meets the ravine to the far end of
+## each set of steps, so the dirt always reaches both ends of the bridge.
+func _connect_path(ends: Array[Vector3], reach: float) -> void:
+	if path_generator == null:
+		return
+	var ea := Vector2(ends[0].x, ends[0].z)
+	var eb := Vector2(ends[1].x, ends[1].z)
+	var axis := (eb - ea).normalized()
+	var out_a := ea - axis * reach
+	var out_b := eb + axis * reach
+
+	# Walk the main path to find where it meets the ravine area and where it leaves.
+	var area := hole.grow(2.0)
+	var pts := PackedVector2Array()
+	var route := path_generator.main_route
+	for i in route.size() - 1:
+		var steps := maxi(1, ceili(route[i].distance_to(route[i + 1]) / 1.5))
+		for k in steps:
+			pts.append(route[i].lerp(route[i + 1], float(k) / steps))
+	pts.append(route[route.size() - 1])
+	var i0 := -1
+	var i1 := -1
+	for i in pts.size():
+		if area.has_point(pts[i]):
+			if i0 < 0:
+				i0 = i
+			i1 = i
+	if i0 < 0:
+		return
+	var entry := pts[maxi(i0 - 1, 0)]
+	var leave := pts[mini(i1 + 1, pts.size() - 1)]
+	var straight := out_a.distance_to(entry) + out_b.distance_to(leave)
+	var crossed := out_a.distance_to(leave) + out_b.distance_to(entry)
+	if straight <= crossed:
+		path_generator.add_connector(entry, out_a)
+		path_generator.add_connector(leave, out_b)
+	else:
+		path_generator.add_connector(leave, out_a)
+		path_generator.add_connector(entry, out_b)

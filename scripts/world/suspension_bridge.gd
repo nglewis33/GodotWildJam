@@ -12,6 +12,10 @@ extends Node3D
 @export var plank_thickness := 0.12
 ## How far the middle of the deck hangs below a straight line, as a fraction of the length.
 @export_range(0.0, 0.15, 0.001) var sag_fraction := 0.03
+## The deck ends this high above the ground, so you have to climb steps to get on.
+@export var end_lift := 1.0
+@export var step_count := 2
+@export var step_depth := 1.0 ## Length of each step along the bridge.
 ## Random per-plank nudges so it looks hand-built.
 @export var plank_jitter := 1.0
 
@@ -31,6 +35,11 @@ extends Node3D
 var _rng := RandomNumberGenerator.new()
 
 
+## How far the steps stick out past each end of the deck.
+func get_approach_length() -> float:
+	return step_count * step_depth
+
+
 ## Builds the bridge between world points a and b (their y is the ground height).
 func build(a: Vector3, b: Vector3) -> void:
 	for ch in get_children():
@@ -47,8 +56,10 @@ func build(a: Vector3, b: Vector3) -> void:
 	global_transform = Transform3D(Basis(Vector3.UP, yaw), mid) # local +Z runs from a to b
 
 	var half := length * 0.5
-	var ya := a.y - mid.y
-	var yb := b.y - mid.y
+	var ga := a.y - mid.y # ground height at each end
+	var gb := b.y - mid.y
+	var ya := ga + end_lift
+	var yb := gb + end_lift
 	var sag := length * sag_fraction
 	var half_w := deck_width * 0.5
 
@@ -83,7 +94,7 @@ func build(a: Vector3, b: Vector3) -> void:
 		var t_end := 0.0 if end == 0 else 1.0
 		var z_end := sgn * half
 		var y_end: float = deck_y.call(t_end)
-		var ground_y: float = (ya if end == 0 else yb) - 0.4
+		var ground_y: float = (ga if end == 0 else gb) - 0.4
 		var top_y := y_end + tower_height
 		for side in [-1.0, 1.0]:
 			var x := float(side) * (half_w + tower_size * 0.5)
@@ -91,6 +102,22 @@ func build(a: Vector3, b: Vector3) -> void:
 			boxes.append(Transform3D(Basis.from_scale(Vector3(tower_size, h, tower_size)), Vector3(x, ground_y + h * 0.5, z_end)))
 		var span := deck_width + tower_size * 3.0
 		boxes.append(Transform3D(Basis.from_scale(Vector3(span, tower_size * 0.7, tower_size * 0.7)), Vector3(0.0, top_y - tower_size * 0.35, z_end)))
+
+	# Steps up to the raised deck at both ends.
+	var step_boxes: Array[AABB] = []
+	var riser := end_lift / float(step_count + 1)
+	for end in 2:
+		var sgn := -1.0 if end == 0 else 1.0
+		var g := ga if end == 0 else gb
+		for j in range(1, step_count + 1):
+			var top := g + end_lift - riser * j
+			var bottom := g - 1.2
+			var h := top - bottom
+			var zc := sgn * (half + (j - 0.5) * step_depth)
+			var size := Vector3(deck_width + 0.3, h, step_depth)
+			var center := Vector3(0.0, bottom + h * 0.5, zc)
+			boxes.append(Transform3D(Basis.from_scale(size), center))
+			step_boxes.append(AABB(center - size * 0.5, size))
 
 	# Cables, handrails and hangers, one set per side.
 	var ropes: Array[ArrayMesh] = []
@@ -158,6 +185,13 @@ func build(a: Vector3, b: Vector3) -> void:
 	var col := CollisionShape3D.new()
 	col.shape = shape
 	body.add_child(col)
+	for sb in step_boxes:
+		var sc := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+		box.size = sb.size
+		sc.shape = box
+		sc.position = sb.get_center()
+		body.add_child(sc)
 	add_child(body)
 
 

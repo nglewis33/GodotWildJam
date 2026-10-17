@@ -115,6 +115,10 @@ var _hash := {}
 var _rng := RandomNumberGenerator.new()
 var _bounds := Rect2()
 var _paint_material: ShaderMaterial
+var _mask_img: Image
+var _mask_tex: ImageTexture
+var _mask_origin := Vector2.ZERO
+var _mask_mpp := 1.0
 var _noise := FastNoiseLite.new()
 
 
@@ -537,6 +541,7 @@ func _cell(p: Vector2) -> Vector2i:
 
 
 func _build_hash() -> void:
+	_hash.clear()
 	for s in _segments:
 		var pad: float = s[2] + QUERY_RANGE
 		var lo := Vector2(minf(s[0].x, s[1].x), minf(s[0].y, s[1].y)) - Vector2(pad, pad)
@@ -570,27 +575,15 @@ func _make_paint(center: Vector2, size: Vector2) -> void:
 	img.fill(Color(path_color.r, path_color.g, path_color.b, 0.0))
 	var origin := center - size * 0.5
 
+	_mask_img = img
+	_mask_origin = origin
+	_mask_mpp = mpp
 	for s in _segments:
-		var a: Vector2 = s[0]
-		var b: Vector2 = s[1]
-		var r: float = s[2]
-		var pad := r + edge_softness + edge_roughness + mpp
-		var x0 := clampi(floori((minf(a.x, b.x) - pad - origin.x) / mpp), 0, w - 1)
-		var x1 := clampi(ceili((maxf(a.x, b.x) + pad - origin.x) / mpp), 0, w - 1)
-		var y0 := clampi(floori((minf(a.y, b.y) - pad - origin.y) / mpp), 0, h - 1)
-		var y1 := clampi(ceili((maxf(a.y, b.y) + pad - origin.y) / mpp), 0, h - 1)
-		for y in range(y0, y1 + 1):
-			for x in range(x0, x1 + 1):
-				var wp := origin + (Vector2(x, y) + Vector2(0.5, 0.5)) * mpp
-				var d := _dist_seg(wp, a, b) - r + _noise.get_noise_2d(wp.x, wp.y) * edge_roughness
-				var cov := 1.0 - smoothstep(-edge_softness * 0.5, edge_softness * 0.5, d)
-				if cov <= 0.0:
-					continue
-				if cov > img.get_pixel(x, y).a:
-					img.set_pixel(x, y, Color(path_color.r, path_color.g, path_color.b, cov))
+		_stamp(s[0], s[1], s[2])
 	img.generate_mipmaps()
 
 	var tex := ImageTexture.create_from_image(img)
+	_mask_tex = tex
 	var sh := Shader.new()
 	sh.code = PAINT_SHADER
 	var mat := ShaderMaterial.new()
@@ -601,6 +594,53 @@ func _make_paint(center: Vector2, size: Vector2) -> void:
 	mat.set_shader_parameter("tint", Color(path_color.r, path_color.g, path_color.b, path_color.a))
 	_paint_material = mat
 	_apply_paint()
+
+
+## Draws one path piece (capsule from a to b, radius r) into the mask image.
+func _stamp(a: Vector2, b: Vector2, r: float) -> void:
+	var img := _mask_img
+	var w := img.get_width()
+	var h := img.get_height()
+	var mpp := _mask_mpp
+	var origin := _mask_origin
+	var pad := r + edge_softness + edge_roughness + mpp
+	var x0 := clampi(floori((minf(a.x, b.x) - pad - origin.x) / mpp), 0, w - 1)
+	var x1 := clampi(ceili((maxf(a.x, b.x) + pad - origin.x) / mpp), 0, w - 1)
+	var y0 := clampi(floori((minf(a.y, b.y) - pad - origin.y) / mpp), 0, h - 1)
+	var y1 := clampi(ceili((maxf(a.y, b.y) + pad - origin.y) / mpp), 0, h - 1)
+	for y in range(y0, y1 + 1):
+		for x in range(x0, x1 + 1):
+			var wp := origin + (Vector2(x, y) + Vector2(0.5, 0.5)) * mpp
+			var d := _dist_seg(wp, a, b) - r + _noise.get_noise_2d(wp.x, wp.y) * edge_roughness
+			var cov := 1.0 - smoothstep(-edge_softness * 0.5, edge_softness * 0.5, d)
+			if cov <= 0.0:
+				continue
+			if cov > img.get_pixel(x, y).a:
+				img.set_pixel(x, y, Color(path_color.r, path_color.g, path_color.b, cov))
+
+
+## Adds an extra straight piece of path after generation (e.g. to join a bridge
+## to the path) and redraws just that piece. width < 0 uses path_width.
+func add_connector(a: Vector2, b: Vector2, width := -1.0) -> void:
+	if _mask_img == null:
+		return
+	var r := (path_width if width < 0.0 else width) * 0.5
+	_segments.append([a, b, r])
+	_build_hash()
+	_stamp(a, b, r)
+	_mask_img.generate_mipmaps()
+	_mask_tex.update(_mask_img)
+
+
+## Lets another material (e.g. the ravine rim) show the painted path: the
+## material's shader needs the uniforms path_mask, path_origin, path_extent, path_tint.
+func apply_paint_to(mat: ShaderMaterial) -> void:
+	if _mask_tex == null:
+		return
+	mat.set_shader_parameter("path_mask", _mask_tex)
+	mat.set_shader_parameter("path_origin", _mask_origin)
+	mat.set_shader_parameter("path_extent", Vector2(_mask_img.get_width(), _mask_img.get_height()) * _mask_mpp)
+	mat.set_shader_parameter("path_tint", path_color)
 
 
 ## Decals don't exist in the Compatibility renderer, so the path is drawn as an
