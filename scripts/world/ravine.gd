@@ -77,6 +77,16 @@ func _ready() -> void:
 	built.emit()
 
 
+## The ravine's centre line (two world X/Z points, end to end), or empty before it exists.
+func get_center_line() -> PackedVector2Array:
+	if hole.size == Vector2.ZERO:
+		return PackedVector2Array()
+	var c := hole.get_center()
+	if _long_along_z:
+		return PackedVector2Array([Vector2(c.x, hole.position.y), Vector2(c.x, hole.end.y)])
+	return PackedVector2Array([Vector2(hole.position.x, c.y), Vector2(hole.end.x, c.y)])
+
+
 ## True if a world (X, Z) point is inside the hole or within margin of it.
 func blocks(p: Vector2, margin := 0.0) -> bool:
 	return hole.size != Vector2.ZERO and hole.grow(margin).has_point(p)

@@ -7,6 +7,8 @@ extends CanvasLayer
 
 @export var ground_grid: GroundGrid
 @export var path_generator: PathGenerator
+## If set, the ravine is drawn as a line.
+@export var ravine: Ravine
 
 @export_group("Discovery")
 ## true: the whole path is visible. false: only path near where you've walked.
@@ -23,6 +25,7 @@ extends CanvasLayer
 @export var grid_color := Color(1, 1, 1, 0.12)
 @export var path_color := Color(1, 1, 1, 0.95)
 @export var line_width := 1.5 ## Doubles-ish in the expanded map (x1.7).
+@export var ravine_color := Color(1.0, 0.85, 0.1, 0.95)
 @export var player_color := Color(1.0, 0.85, 0.2)
 @export var npc_color := Color(0.4, 0.8, 1.0)
 
@@ -35,6 +38,7 @@ var _expanded := false
 var _view_q := Vector2i.ZERO
 var _pieces: Array = [] # [Vector2 a, Vector2 b, float r, bool discovered]
 var _timer := 0.0
+var _ravine_seen := false
 var _origin := Vector2.ZERO
 var _k := Vector2.ONE
 
@@ -147,6 +151,9 @@ func _update_discovery() -> void:
 			continue
 		if _dist_seg(p, piece[0], piece[1]) - piece[2] < discover_radius:
 			piece[3] = true
+	# The ravine shows up once you get near it.
+	if ravine and not _ravine_seen and ravine.blocks(p, discover_radius * 3.0):
+		_ravine_seen = true
 
 
 func _dist_seg(p: Vector2, a: Vector2, b: Vector2) -> float:
@@ -196,6 +203,12 @@ func _on_draw() -> void:
 	for i in range(1, int(ceil(tiles.y))):
 		var y := sz.y * i / tiles.y
 		_view.draw_line(Vector2(0, y), Vector2(sz.x, y), grid_color, 1.0)
+
+	# Ravine (yellow line).
+	if ravine and (reveal_all or _ravine_seen):
+		var line := ravine.get_center_line()
+		if line.size() == 2:
+			_view.draw_line(_w2m(line[0]), _w2m(line[1]), ravine_color, line_width * 2.0 * big, true)
 
 	# Path.
 	for piece in _pieces:

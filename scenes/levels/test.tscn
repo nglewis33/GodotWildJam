@@ -238,8 +238,9 @@ npc_scene = ExtResource("75_npc")
 log_size_override = 2.0
 npc_seat_offset = Vector3(-0.3, 0, 0.2)
 
-[node name="Minimap" type="CanvasLayer" parent="." unique_id=112153061 node_paths=PackedStringArray("ground_grid", "path_generator")]
+[node name="Minimap" type="CanvasLayer" parent="." unique_id=112153061 node_paths=PackedStringArray("ground_grid", "path_generator", "ravine")]
 script = ExtResource("80_minimap")
 ground_grid = NodePath("../Ground")
 path_generator = NodePath("../PathGenerator")
+ravine = NodePath("../Ravine")
 reveal_all = true
