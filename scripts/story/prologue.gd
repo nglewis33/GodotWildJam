@@ -164,7 +164,7 @@ func _process(delta: float) -> void:
 		var to_npc := player.global_position - camp.npc.global_position
 		to_npc.y = 0.0
 		var near := to_npc.length() <= talk_distance and not get_tree().paused
-		_hint.text = "Press E to interact"
+		_hint.text = "Press E to interact with %s" % camp.npc.display_name
 		_hint.modulate.a = 1.0 if near else 0.0
 	if _leashed and not _in_dark and _looped and not _respawning and not get_tree().paused \
 			and bool(player.get("input_enabled")):

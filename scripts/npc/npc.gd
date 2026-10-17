@@ -6,6 +6,8 @@ extends Node3D
 @export var idle_animation := "Sitting_Idle"
 @export var talk_animation := "Sitting_Talking"
 @export var blend := 0.3
+## Shown in the prompt: "Press E to interact with <name>".
+@export var display_name := "Stranger"
 ## When standing up he steps this far forward (away from the log).
 @export var stand_forward := 0.45
 @export var auto_talk := true

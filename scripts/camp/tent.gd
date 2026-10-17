@@ -9,6 +9,8 @@ signal looted(items: Array)
 ## Item ids inside (shown capitalized, e.g. "map" -> "Map").
 @export var items: Array[String] = ["map"]
 @export var interact_distance := 3.5
+## Shown in the prompt: "Press E to interact with <name>".
+@export var display_name := "Tent"
 ## Story code can switch this off until the tent is allowed to be searched.
 var interactable := true
 
@@ -61,7 +63,10 @@ func _can_interact() -> bool:
 
 func _process(_delta: float) -> void:
 	if _prompt:
-		_prompt.modulate.a = 1.0 if _can_interact() else 0.0
+		var show := _can_interact()
+		if show:
+			_prompt.text = "Press E to interact with %s" % display_name
+		_prompt.modulate.a = 1.0 if show else 0.0
 
 
 func _unhandled_input(event: InputEvent) -> void:
